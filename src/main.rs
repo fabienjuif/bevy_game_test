@@ -1,6 +1,10 @@
 mod doc_plugin;
 
-use bevy::{input::gamepad::GamepadButtonChangedEvent, prelude::*};
+use bevy::{
+    input::gamepad::GamepadButtonChangedEvent,
+    log::{Level, LogPlugin},
+    prelude::*,
+};
 use doc_plugin::HelloPlugin;
 use rand::Rng;
 
@@ -35,7 +39,15 @@ struct Target {
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, HelloPlugin))
+        .add_plugins((
+            DefaultPlugins.set(LogPlugin {
+                level: Level::TRACE,
+                filter:
+                    "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn"
+                        .to_string(),
+            }),
+            HelloPlugin,
+        ))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -174,7 +186,7 @@ fn spawn_enemies(commands: &mut Commands) {
         ))
         .id();
 
-    println!("Spawning Minion: {:?}", id);
+    trace!("Spawning Minion: {:?}", id);
 }
 
 fn update_move_minions(
@@ -192,7 +204,7 @@ fn update_move_minions(
         if transform.translation.x.abs() >= GAME_MAX_WIDTH / 2.
             || transform.translation.y.abs() >= GAME_MAX_HEIGHT / 2.
         {
-            println!("Unspawning Minion: {:?}", entity);
+            trace!("Unspawning Minion: {:?}", entity);
             commands.entity(entity).despawn_recursive();
         }
     }
