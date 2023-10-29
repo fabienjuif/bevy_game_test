@@ -1,5 +1,9 @@
 name: Main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # inspired by bevy: https://raw.githubusercontent.com/bevyengine/bevy_github_ci_template/main/.github/workflows/ci.yaml
 
 on:
