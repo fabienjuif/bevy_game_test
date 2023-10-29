@@ -9,4 +9,4 @@ jobs:
   check:
     uses: ectobit/reusable-workflows/.github/workflows/rust-check.yaml@main
     with:
-      rust-version: "2021"
+      rust-version: "stable"
