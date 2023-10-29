@@ -2,21 +2,11 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
-
-env:
-  CARGO_TERM_COLOR: always
+  workflow_dispatch:
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+  check:
+    uses: ectobit/reusable-workflows/.github/workflows/rust-check.yaml@main
+    with:
+      rust-version: "2021"
