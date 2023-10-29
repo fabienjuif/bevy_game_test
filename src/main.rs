@@ -5,8 +5,10 @@ use doc_plugin::HelloPlugin;
 use rand::Rng;
 
 const JOYSTICK_SCALE: f32 = 200.;
-const MINION_SCALE: f32 = 0.2;
+const MINION_SCALE: f32 = 200.;
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
+const GAME_MAX_WIDTH: f32 = 2000.;
+const GAME_MAX_HEIGHT: f32 = 2000.;
 
 #[derive(Component)]
 struct LocalPlayer;
@@ -149,34 +151,49 @@ fn update_button_values(
 fn spawn_enemies(commands: &mut Commands) {
     let mut rng = rand::thread_rng();
 
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(1., 0., 0.),
-                custom_size: Some(Vec2::new(50.0, 50.0)),
+    let id = commands
+        .spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1., 0., 0.),
+                    custom_size: Some(Vec2::new(10.0, 10.0)),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            ..default()
-        },
-        Enemy {},
-        Minion {},
-        Target {
-            position: Vec3::new(
-                rng.gen_range(-1000.0..1000.0),
-                rng.gen_range(-1000.0..1000.0),
-                0.,
-            ),
-        },
-    ));
+            Enemy {},
+            Minion {},
+            Target {
+                position: Vec3::new(
+                    rng.gen_range(-1000.0..1000.0),
+                    rng.gen_range(-1000.0..1000.0),
+                    0.,
+                ),
+            },
+        ))
+        .id();
+
+    println!("Spawning Minion: {:?}", id);
 }
 
-fn update_move_minions(time: Res<Time>, mut query: Query<(&mut Transform, &Target), With<Minion>>) {
-    for (mut transform, target) in &mut query {
+fn update_move_minions(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &Target, Entity), With<Minion>>,
+) {
+    for (mut transform, target, entity) in &mut query {
         let normalized_target_position = target.position.normalize();
         transform.translation.x +=
-            time.elapsed_seconds() * MINION_SCALE * normalized_target_position.x;
+            time.delta_seconds() * MINION_SCALE * normalized_target_position.x;
         transform.translation.y +=
-            time.elapsed_seconds() * MINION_SCALE * normalized_target_position.y;
+            time.delta_seconds() * MINION_SCALE * normalized_target_position.y;
+
+        if transform.translation.x.abs() >= GAME_MAX_WIDTH / 2.
+            || transform.translation.y.abs() >= GAME_MAX_HEIGHT / 2.
+        {
+            println!("Unspawning Minion: {:?}", entity);
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
