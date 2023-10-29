@@ -1,6 +1,6 @@
 name: Main
 
-# copied from bevy: https://raw.githubusercontent.com/bevyengine/bevy_github_ci_template/main/.github/workflows/ci.yaml
+# inspired by bevy: https://raw.githubusercontent.com/bevyengine/bevy_github_ci_template/main/.github/workflows/ci.yaml
 
 on:
   push:
@@ -13,16 +13,13 @@ env:
 
 jobs:
   # Run cargo test
-  test:
-    name: Test Suite
+  quality:
     runs-on: ubuntu-latest
-    container: fabienjuif/ubuntu-asound-dev
+    # container: fabienjuif/ubuntu-asound-dev
     timeout-minutes: 30
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-      - name: Run cargo fmt
-        run: cargo fmt --all -- --check
       - name: Cache
         uses: actions/cache@v3
         with:
@@ -33,6 +30,14 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Install Dependencies
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
       - name: Run clippy
         run: cargo clippy -- -D warnings
       - name: Run cargo test
