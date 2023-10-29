@@ -5,7 +5,7 @@ use doc_plugin::HelloPlugin;
 use rand::Rng;
 
 const JOYSTICK_SCALE: f32 = 200.;
-const MINION_SCALE: f32 = 10.;
+const MINION_SCALE: f32 = 0.2;
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
 
 #[derive(Component)]
@@ -23,8 +23,13 @@ struct Enemy;
 #[derive(Component)]
 struct Minion;
 
-#[derive(Resource)]
-struct LocalPlayerGamepad(Gamepad);
+#[derive(Component)]
+struct Camera;
+
+#[derive(Component)]
+struct Target {
+    position: Vec3,
+}
 
 fn main() {
     App::new()
@@ -38,7 +43,7 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), Camera {}));
 
     // Rectangle
     commands
@@ -139,7 +144,11 @@ fn update_button_values(
 }
 
 // TODO: Use global tranform?
+// TODO: use a seed random maybe Bevy has one
+// TODO: Target should be updated in the main loop (and not being randomize)
 fn spawn_enemies(commands: &mut Commands) {
+    let mut rng = rand::thread_rng();
+
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
@@ -152,16 +161,22 @@ fn spawn_enemies(commands: &mut Commands) {
         },
         Enemy {},
         Minion {},
+        Target {
+            position: Vec3::new(
+                rng.gen_range(-1000.0..1000.0),
+                rng.gen_range(-1000.0..1000.0),
+                0.,
+            ),
+        },
     ));
 }
 
-// TODO: use a seed random maybe Bevy has one
-// TODO: Keep Random value for some frames (need to know how to store data myself)
-fn update_move_minions(time: Res<Time>, mut query: Query<&mut Transform, With<Minion>>) {
-    let mut rng = rand::thread_rng();
-
-    for mut m in &mut query {
-        m.translation.x = time.elapsed_seconds() * MINION_SCALE * rng.gen::<f32>();
-        m.translation.y = time.elapsed_seconds() * MINION_SCALE * rng.gen::<f32>();
+fn update_move_minions(time: Res<Time>, mut query: Query<(&mut Transform, &Target), With<Minion>>) {
+    for (mut transform, target) in &mut query {
+        let normalized_target_position = target.position.normalize();
+        transform.translation.x +=
+            time.elapsed_seconds() * MINION_SCALE * normalized_target_position.x;
+        transform.translation.y +=
+            time.elapsed_seconds() * MINION_SCALE * normalized_target_position.y;
     }
 }
