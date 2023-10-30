@@ -67,6 +67,7 @@ fn setup(mut commands: Commands) {
             },
             LocalPlayer {},
             Name("local_player".to_string()),
+            Team("a".to_string()),
         ))
         .with_children(|parent| {
             parent.spawn((

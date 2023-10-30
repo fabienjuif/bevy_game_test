@@ -9,7 +9,7 @@ pub struct Target {
 }
 
 #[derive(Component)]
-pub struct Enemy;
+pub struct Name(pub String);
 
 #[derive(Component)]
-pub struct Name(pub String);
+pub struct Team(pub String);
