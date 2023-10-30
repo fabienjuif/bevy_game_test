@@ -1,9 +1,9 @@
-use crate::common::*;
+use crate::{
+    common::*,
+    health_bar::{Health, HealthBar},
+};
 use bevy::{
-    prelude::{
-        trace, App, Commands, Component, DespawnRecursiveExt, Entity, Plugin, Query, Res,
-        Transform, Update, Vec2, With, Without,
-    },
+    prelude::*,
     sprite::{Sprite, SpriteBundle},
     time::{Time, Timer},
     utils::default,
@@ -30,7 +30,7 @@ impl Plugin for MinionsPlugin {
 pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) {
     let mut rng = rand::thread_rng();
 
-    let id = commands
+    let entity = commands
         .spawn((
             SpriteBundle {
                 sprite: Sprite {
@@ -53,11 +53,27 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                     bevy::time::TimerMode::Once,
                 ),
             },
+            Health { health: 20. },
             team,
         ))
         .id();
 
-    trace!("Spawning Minion: {:?}", id);
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: DEFAULT_HEALTH_COLOR,
+                custom_size: Some(Vec2::new(10.0, 5.0)),
+                ..default()
+            },
+            ..default()
+        },
+        HealthBar {
+            entity,
+            translation: Vec3::new(0.0, 15.0, 0.1),
+        },
+    ));
+
+    trace!("Spawning Minion: {:?}", entity);
 }
 
 fn update_move_minions(

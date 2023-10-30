@@ -1,22 +1,20 @@
 mod common;
 mod doc_plugin;
+mod health_bar;
 mod minions;
 mod racks;
 
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
     log::{Level, LogPlugin},
-    prelude::{
-        default, App, Axis, BuildChildren, Camera2dBundle, Children, Color, Commands, Component,
-        EventReader, GamepadAxis, GamepadAxisType, GamepadButtonType, Gamepads, PluginGroup, Quat,
-        Query, Res, Startup, Transform, Update, Vec2, Vec3, With,
-    },
+    prelude::*,
     sprite::{Sprite, SpriteBundle},
     time::Time,
     DefaultPlugins,
 };
 use common::*;
 use doc_plugin::HelloPlugin;
+use health_bar::{Health, HealthBar, HealthBarPlugin};
 use minions::MinionsPlugin;
 use racks::RacksPlugin;
 
@@ -46,6 +44,7 @@ fn main() {
             HelloPlugin,
             MinionsPlugin,
             RacksPlugin,
+            HealthBarPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (update_axes, update_button_values))
@@ -57,7 +56,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((Camera2dBundle::default(), Camera {}));
 
     // Local player
-    commands
+    let entity = commands
         .spawn((
             SpriteBundle {
                 sprite: Sprite {
@@ -69,6 +68,7 @@ fn setup(mut commands: Commands) {
                 ..default()
             },
             LocalPlayer {},
+            Health { health: 100. },
             Name("local_player".to_string()),
             Team {
                 id: "a".to_string(),
@@ -88,7 +88,23 @@ fn setup(mut commands: Commands) {
                 },
                 Hand {},
             ));
-        });
+        })
+        .id();
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: DEFAULT_HEALTH_COLOR,
+                custom_size: Some(Vec2::new(50.0, 5.0)),
+                ..default()
+            },
+            ..default()
+        },
+        HealthBar {
+            entity,
+            translation: Vec3::new(0.0, 40.0, 0.1),
+        },
+    ));
 }
 
 fn update_axes(
@@ -134,13 +150,12 @@ fn update_axes(
 fn update_button_values(
     mut commands: Commands,
     mut events: EventReader<GamepadButtonChangedEvent>,
-    mut parents_query: Query<&Children, With<LocalPlayer>>,
-    query_local_player: Query<(&Transform, &Team), With<LocalPlayer>>,
+    query_local_player: Query<(&Transform, &Team, &Children), With<LocalPlayer>>,
     mut query: Query<&mut Sprite, With<Hand>>,
 ) {
     for button_event in events.iter() {
         if button_event.button_type == GamepadButtonType::South {
-            for children in &mut parents_query {
+            for (_, _, children) in &query_local_player {
                 for child in children {
                     if let Ok(mut sprite) = query.get_mut(*child) {
                         if button_event.value != 0. {
@@ -154,8 +169,8 @@ fn update_button_values(
         }
 
         if button_event.button_type == GamepadButtonType::East && button_event.value != 0. {
-            let (transform, team) = query_local_player.single();
-            racks::spawn_rack(&mut commands, transform.clone(), team.clone());
+            let (transform, team, _) = query_local_player.single();
+            racks::spawn_rack(&mut commands, *transform, team.clone());
         }
     }
 }
