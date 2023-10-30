@@ -1,4 +1,4 @@
-use bevy::prelude::{Component, Vec3};
+use bevy::prelude::{Color, Component, Vec3};
 
 pub const GAME_MAX_WIDTH: f32 = 2000.;
 pub const GAME_MAX_HEIGHT: f32 = 2000.;
@@ -11,5 +11,8 @@ pub struct Target {
 #[derive(Component)]
 pub struct Name(pub String);
 
-#[derive(Component)]
-pub struct Team(pub String);
+#[derive(Component, Clone)]
+pub struct Team {
+    pub id: String,
+    pub color: Color,
+}

@@ -1,6 +1,7 @@
 mod common;
 mod doc_plugin;
 mod minions;
+mod racks;
 
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
@@ -17,6 +18,7 @@ use bevy::{
 use common::*;
 use doc_plugin::HelloPlugin;
 use minions::MinionsPlugin;
+use racks::RacksPlugin;
 
 const JOYSTICK_SCALE: f32 = 200.;
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
@@ -43,6 +45,7 @@ fn main() {
             }),
             HelloPlugin,
             MinionsPlugin,
+            RacksPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (update_axes, update_button_values))
@@ -67,7 +70,10 @@ fn setup(mut commands: Commands) {
             },
             LocalPlayer {},
             Name("local_player".to_string()),
-            Team("a".to_string()),
+            Team {
+                id: "a".to_string(),
+                color: Color::rgb(0.3, 0.3, 0.8),
+            },
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -129,6 +135,7 @@ fn update_button_values(
     mut commands: Commands,
     mut events: EventReader<GamepadButtonChangedEvent>,
     mut parents_query: Query<&Children, With<LocalPlayer>>,
+    query_local_player: Query<(&Transform, &Team), With<LocalPlayer>>,
     mut query: Query<&mut Sprite, With<Hand>>,
 ) {
     for button_event in events.iter() {
@@ -147,7 +154,8 @@ fn update_button_values(
         }
 
         if button_event.button_type == GamepadButtonType::East && button_event.value != 0. {
-            minions::spawn_minion(&mut commands)
+            let (transform, team) = query_local_player.single();
+            racks::spawn_rack(&mut commands, transform.clone(), team.clone());
         }
     }
 }

@@ -2,10 +2,10 @@ use crate::common::*;
 use bevy::{
     prelude::{
         trace, App, Color, Commands, Component, DespawnRecursiveExt, Entity, Plugin, Query, Res,
-        ResMut, Resource, Transform, Update, Vec2, With, Without,
+        Transform, Update, Vec2, With, Without,
     },
     sprite::{Sprite, SpriteBundle},
-    time::{Time, Timer, TimerMode},
+    time::Time,
     utils::default,
 };
 use rand::Rng;
@@ -14,46 +14,36 @@ const MINION_SCALE: f32 = 100.;
 
 pub struct MinionsPlugin;
 
-#[derive(Resource)]
-struct MinionsSpawner {
-    timer: Timer,
-    count: u32,
-}
-
 #[derive(Component)]
 struct Minion;
 
 impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(MinionsSpawner {
-            timer: Timer::from_seconds(3., TimerMode::Repeating),
-            count: 50,
-        })
-        .add_systems(Update, (update_move_minions, spawn_minions));
+        app.add_systems(Update, update_move_minions);
     }
 }
 
 // TODO: Use global tranform?
-pub fn spawn_minion(commands: &mut Commands) {
+pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) {
     let mut rng = rand::thread_rng();
 
     let id = commands
         .spawn((
             SpriteBundle {
                 sprite: Sprite {
-                    color: Color::rgb(1., 0., 0.),
+                    color: team.color,
                     custom_size: Some(Vec2::new(10.0, 10.0)),
                     ..default()
                 },
                 transform: Transform::from_xyz(
-                    rng.gen_range(-20.0..20.0),
-                    rng.gen_range(-20.0..20.0),
+                    transform.translation.x + rng.gen_range(-20.0..20.0),
+                    transform.translation.y + rng.gen_range(-20.0..20.0),
                     0.0,
                 ),
                 ..default()
             },
             Minion {},
-            Team("b".to_string()),
+            team,
         ))
         .id();
 
@@ -83,7 +73,7 @@ fn update_move_minions(
         let mut closer_target: &Transform = &Transform::from_xyz(0., 0., 0.);
         let mut found_target = false;
         for (target_transform, target_team) in &query_targets {
-            if team.0 == target_team.0 {
+            if team.id == target_team.id {
                 continue;
             }
 
@@ -113,13 +103,5 @@ fn update_move_minions(
             time.delta_seconds() * MINION_SCALE * normalized_target_position.x;
         transform.translation.y +=
             time.delta_seconds() * MINION_SCALE * normalized_target_position.y;
-    }
-}
-
-fn spawn_minions(mut commands: Commands, time: Res<Time>, mut spawner: ResMut<MinionsSpawner>) {
-    if spawner.timer.tick(time.delta()).just_finished() {
-        for _ in 0..spawner.count {
-            spawn_minion(&mut commands);
-        }
     }
 }
