@@ -31,7 +31,7 @@ fn update_health_bar_position(
                     parent_transform.to_scale_rotation_translation().2 + health_bar.translation;
             }
             Err(_) => {
-                info!("health bar alone, unspawning it");
+                debug!("health bar alone, unspawning it");
                 commands.entity(entity).despawn_recursive();
             }
         }
