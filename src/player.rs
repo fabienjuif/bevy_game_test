@@ -26,12 +26,28 @@ struct Hand;
 #[derive(Component)]
 struct GoldUI;
 
+#[derive(Component)]
+struct Sword;
+
+impl Sword {
+    pub fn collider() -> Collider {
+        Collider::cuboid(50.0, 25.)
+    }
+}
+
 pub struct LocalPlayerPlugin;
 
 impl Plugin for LocalPlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup, setup_ui))
-            .add_systems(Update, (update_axes, update_button_values, update_ui));
+        app.add_systems(Startup, (setup, setup_ui)).add_systems(
+            Update,
+            (
+                update_axes,
+                update_button_values,
+                check_collisions_sword,
+                update_ui,
+            ),
+        );
     }
 }
 
@@ -72,6 +88,21 @@ fn setup(mut commands: Commands) {
                     ..default()
                 },
                 Hand {},
+            ));
+
+            parent.spawn((
+                SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(0.25, 0.6, 0.25),
+                        custom_size: Some(Vec2::new(100.0, 50.0)),
+                        ..default()
+                    },
+                    transform: Transform::from_xyz(0.0, 35.0, 10.0),
+                    visibility: Visibility::Hidden,
+                    ..default()
+                },
+                Sensor,
+                Sword,
             ));
         })
         .id();
@@ -117,7 +148,7 @@ fn update_axes(
             .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
             .unwrap();
         let mut moved = false;
-        if left_stick_x.abs() > 0.01 {
+        if left_stick_x.abs() > 0.1 {
             moved = true;
             for mut transform in &mut query {
                 transform.translation.x += left_stick_x * JOYSTICK_SCALE * time.delta_seconds();
@@ -127,7 +158,7 @@ fn update_axes(
         let left_stick_y = axes
             .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
             .unwrap();
-        if left_stick_y.abs() > 0.01 {
+        if left_stick_y.abs() > 0.1 {
             moved = true;
             for mut transform in &mut query {
                 transform.translation.y += left_stick_y * JOYSTICK_SCALE * time.delta_seconds();
@@ -150,6 +181,7 @@ fn update_button_values(
     mut events: EventReader<GamepadButtonChangedEvent>,
     mut query_local_player: Query<(&mut Player, &Transform, &Team, &Children), With<LocalPlayer>>,
     mut query: Query<&mut Sprite, With<Hand>>,
+    query_sword: Query<Entity, With<Sword>>,
 ) {
     for button_event in events.iter() {
         if button_event.button_type == GamepadButtonType::South {
@@ -160,6 +192,19 @@ fn update_button_values(
                             sprite.color = Color::rgb(0.25, 0.75, 0.25)
                         } else {
                             sprite.color = DEFAULT_HAND_COLOR
+                        }
+                    }
+
+                    if let Ok(entity) = query_sword.get(*child) {
+                        if button_event.value != 0. {
+                            commands
+                                .entity(entity)
+                                .insert((Sword::collider(), Visibility::Visible));
+                        } else {
+                            commands
+                                .entity(entity)
+                                .remove::<Collider>()
+                                .insert(Visibility::Hidden);
                         }
                     }
                 }
@@ -184,4 +229,43 @@ fn update_ui(
     let mut text = query_ui.get_single_mut().expect("no gold ui found");
 
     text.sections[0].value = format!("Gold: {}", player.gold);
+}
+
+// maybe this is a bad idea to have a system per component since the collision event is having all contacts
+// it makes us loop inside collision events multiple time
+fn check_collisions_sword(
+    // mut commands: Commands,
+    query_swords: Query<Entity, With<Sword>>,
+    mut query_health: Query<(Entity, &mut Health)>,
+    mut collision_events: EventReader<CollisionEvent>,
+) {
+    for collision_event in collision_events.iter() {
+        match collision_event {
+            CollisionEvent::Started(e1, e2, _) => {
+                if query_swords
+                    .get(*e1)
+                    .ok()
+                    .or_else(|| query_swords.get(*e2).ok())
+                    .is_none()
+                {
+                    continue;
+                }
+
+                let health = if query_health.contains(*e1) {
+                    query_health.get_mut(*e1).ok()
+                } else {
+                    query_health.get_mut(*e2).ok()
+                };
+                let (_, mut health) = match health {
+                    None => continue,
+                    Some(o) => o,
+                };
+
+                // hurt
+                // TODO: health should have a function to remove some offset
+                health.value -= 20.;
+            }
+            CollisionEvent::Stopped(_, _, _) => {}
+        }
+    }
 }

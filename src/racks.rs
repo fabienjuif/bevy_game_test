@@ -34,7 +34,23 @@ fn setup_rack(mut commands: Commands) {
             id: "b".to_string(),
             color: Color::rgb(0.8, 0.3, 0.3),
         },
-    )
+    );
+    spawn_rack(
+        &mut commands,
+        Transform::from_xyz(250.0, 150.0, 0.),
+        Team {
+            id: "b".to_string(),
+            color: Color::rgb(0.8, 0.3, 0.3),
+        },
+    );
+    spawn_rack(
+        &mut commands,
+        Transform::from_xyz(100.0, -100.0, 0.),
+        Team {
+            id: "c".to_string(),
+            color: Color::rgb(0.8, 0.8, 0.3),
+        },
+    );
 }
 
 fn spawn_minions(

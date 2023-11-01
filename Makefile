@@ -6,6 +6,7 @@ start-windows:
 	@cargo run --target=x86_64-pc-windows-msvc
 
 release-windows:
+	@cp -R assets/ target/x86_64-pc-windows-msvc/release/
 	@cargo build --target=x86_64-pc-windows-msvc --release
 
 release-mac-m1:
