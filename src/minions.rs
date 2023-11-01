@@ -23,7 +23,7 @@ struct Minion {
 
 impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (update_move_minions, destroy_minions));
+        app.add_systems(Update, (update_move_minions, destroy_minions, hurt_player));
     }
 }
 
@@ -48,6 +48,7 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
             },
             RigidBody::Dynamic,
             Collider::cuboid(5.0, 5.),
+            ActiveEvents::COLLISION_EVENTS,
             // Restitution::coefficient(2.),
             // Friction::coefficient(2.),
             Minion {
@@ -58,12 +59,13 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                     bevy::time::TimerMode::Once,
                 ),
             },
-            Health { health: 20. },
+            Health::new(20.),
             team,
         ))
         .id();
 
     commands.spawn((
+        // TODO: do a health bundle and move it to heath_bar crate
         SpriteBundle {
             sprite: Sprite {
                 color: DEFAULT_HEALTH_COLOR,
@@ -75,6 +77,7 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
         HealthBar {
             entity,
             translation: Vec3::new(0.0, 15.0, 0.1),
+            size: Vec2::new(10.0, 5.0), // TODO: once a bundle make sure this initialise the sprite
         },
     ));
 
@@ -141,6 +144,72 @@ fn destroy_minions(
             trace!("Unspawning Minion: {:?}", entity);
             commands.entity(entity).despawn_recursive();
             continue;
+        }
+    }
+}
+
+// maybe this is a bad idea to have a system per component since the collision event is having all contacts
+// it makes us loop inside collision events multiple time
+fn hurt_player(
+    mut query_players: Query<(Entity, &Team, &mut Health), With<Player>>,
+    query_minions: Query<(Entity, &Team), With<Minion>>,
+    mut collision_events: EventReader<CollisionEvent>,
+    // mut contact_force_events: EventReader<ContactForceEvent>,
+) {
+    for collision_event in collision_events.iter() {
+        match collision_event {
+            CollisionEvent::Started(e1, e2, _) => {
+                let minion = match query_minions
+                    .get(*e1)
+                    .ok()
+                    .or_else(|| query_minions.get(*e2).ok())
+                {
+                    None => continue,
+                    Some(p) => p,
+                };
+
+                // to avoid to borrow twice the query check with which entity the minion is resolved
+                // and take the other one to check if this is a player, this hacky way of doing it
+                // I am sure rust can resolve this better, here the first attempt in case someone
+                // want to explain me how to resolve it with Rust
+                //
+                // let player = match query_players
+                //     .get_mut(*e1)
+                //     .ok()
+                //     .or_else(|| query_players.get_mut(*e2).ok())
+                // {
+                //     None => continue,
+                //     Some(p) => p,
+                // };
+                //
+                let player = if query_players.contains(*e1) {
+                    query_players.get_mut(*e1).ok()
+                } else {
+                    query_players.get_mut(*e2).ok()
+                };
+                let mut player = match player {
+                    None => continue,
+                    Some(p) => p,
+                };
+
+                // if they are from the same team, do nothing special
+                if player.1.id == minion.1.id {
+                    continue;
+                }
+
+                // hurt the player
+                player.2.value -= 1.;
+                if player.2.value < 0. {
+                    player.2.value = 0.
+                }
+
+                trace!(
+                    "minion {} collision with the player {}",
+                    minion.1.id,
+                    player.1.id
+                )
+            }
+            CollisionEvent::Stopped(_, _, _) => {}
         }
     }
 }

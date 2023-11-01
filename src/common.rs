@@ -18,3 +18,6 @@ pub struct Team {
     pub id: String,
     pub color: Color,
 }
+
+#[derive(Component)]
+pub struct Player;

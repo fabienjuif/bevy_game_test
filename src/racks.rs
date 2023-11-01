@@ -1,8 +1,5 @@
 use bevy::{
-    prelude::{
-        default, info, trace, App, Color, Commands, Component, Plugin, Query, Res, Startup,
-        Transform, Update, Vec2,
-    },
+    prelude::*,
     sprite::{Sprite, SpriteBundle},
     time::{Time, Timer, TimerMode},
 };
@@ -50,7 +47,7 @@ fn spawn_minions(
 
         // we are ready to start spawning
         if rack.minion_spawn_timer.just_finished() {
-            info!("rack ready to spawn minions!");
+            debug!("[rack] ready to spawn minions!");
             rack.minion_spawned_count = 0;
             rack.minion_spawning = true;
         }
@@ -65,7 +62,7 @@ fn spawn_minions(
             rack.minion_spawned_count += 1;
 
             if rack.minion_spawned_count >= rack.minion_spawn_count {
-                info!("every minions are spawned!");
+                debug!("[rack] every minions are spawned!");
                 rack.minion_spawning = false;
             }
         }

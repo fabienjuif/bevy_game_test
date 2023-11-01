@@ -84,8 +84,10 @@ fn setup(mut commands: Commands) {
             // RigidBody::KinematicVelocityBased,
             RigidBody::Dynamic,
             Collider::cuboid(25.0, 25.),
+            ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
-            Health { health: 100. },
+            Player {},
+            Health::new(100.),
             Name("local_player".to_string()),
             Team {
                 id: "a".to_string(),
@@ -109,6 +111,7 @@ fn setup(mut commands: Commands) {
         .id();
 
     commands.spawn((
+        // TODO: do a health bundle and move it to heath_bar crate
         SpriteBundle {
             sprite: Sprite {
                 color: DEFAULT_HEALTH_COLOR,
@@ -120,6 +123,7 @@ fn setup(mut commands: Commands) {
         HealthBar {
             entity,
             translation: Vec3::new(0.0, 40.0, 0.1),
+            size: Vec2::new(50.0, 5.0), // TODO: once a bundle make sure this initialise the sprite
         },
     ));
 }
