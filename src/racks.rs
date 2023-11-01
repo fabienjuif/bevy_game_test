@@ -6,6 +6,8 @@ use bevy::{
 
 use crate::common::Team;
 
+pub const RACK_GOLD_VALUE: u32 = 10;
+
 #[derive(Component)]
 pub struct Rack {
     minion_spawn_timer: Timer,

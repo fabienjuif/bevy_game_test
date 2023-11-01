@@ -15,7 +15,7 @@ use bevy_rapier2d::prelude::*;
 use common::*;
 use health_bar::{Health, HealthBarBundle, HealthBarPlugin};
 use minions::MinionsPlugin;
-use racks::RacksPlugin;
+use racks::{RacksPlugin, RACK_GOLD_VALUE};
 
 const JOYSTICK_SCALE: f32 = 200.;
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
@@ -30,6 +30,9 @@ struct Hand;
 
 #[derive(Component)]
 struct Camera;
+
+#[derive(Component)]
+struct GoldUI;
 
 fn main() {
     let mut app = App::new();
@@ -47,8 +50,8 @@ fn main() {
 
     init_physics(&mut app);
 
-    app.add_systems(Startup, setup)
-        .add_systems(Update, (update_axes, update_button_values));
+    app.add_systems(Startup, (setup, setup_ui))
+        .add_systems(Update, (update_axes, update_button_values, update_ui));
 
     app.run();
 }
@@ -63,6 +66,28 @@ fn init_physics(app: &mut App) {
         gravity: Vec2::new(0.0, 0.0),
         ..default()
     });
+}
+
+fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn((
+        TextBundle::from_section(
+            "",
+            TextStyle {
+                font: asset_server.load("fonts/FiraSans-Regular.ttf"),
+                font_size: 30.0,
+                color: Color::WHITE,
+            },
+        )
+        .with_style(Style {
+            margin: UiRect::all(Val::Px(5.)),
+            ..default()
+        }),
+        // Because this is a distinct label widget and
+        // not button/list item text, this is necessary
+        // for accessibility to treat the text accordingly.
+        Label,
+        GoldUI,
+    ));
 }
 
 fn setup(mut commands: Commands) {
@@ -86,7 +111,7 @@ fn setup(mut commands: Commands) {
             Collider::cuboid(25.0, 25.),
             ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
-            Player {},
+            Player { gold: 20 },
             Health::new(100.),
             Name("local_player".to_string()),
             Team {
@@ -160,12 +185,12 @@ fn update_axes(
 fn update_button_values(
     mut commands: Commands,
     mut events: EventReader<GamepadButtonChangedEvent>,
-    query_local_player: Query<(&Transform, &Team, &Children), With<LocalPlayer>>,
+    mut query_local_player: Query<(&mut Player, &Transform, &Team, &Children), With<LocalPlayer>>,
     mut query: Query<&mut Sprite, With<Hand>>,
 ) {
     for button_event in events.iter() {
         if button_event.button_type == GamepadButtonType::South {
-            for (_, _, children) in &query_local_player {
+            for (_, _, _, children) in &query_local_player {
                 for child in children {
                     if let Ok(mut sprite) = query.get_mut(*child) {
                         if button_event.value != 0. {
@@ -179,8 +204,21 @@ fn update_button_values(
         }
 
         if button_event.button_type == GamepadButtonType::East && button_event.value != 0. {
-            let (transform, team, _) = query_local_player.single();
-            racks::spawn_rack(&mut commands, *transform, team.clone());
+            let (mut player, transform, team, _) = query_local_player.single_mut();
+            if player.gold >= RACK_GOLD_VALUE {
+                racks::spawn_rack(&mut commands, *transform, team.clone());
+                player.gold -= RACK_GOLD_VALUE;
+            }
         }
     }
+}
+
+fn update_ui(
+    query_player: Query<&Player, With<LocalPlayer>>,
+    mut query_ui: Query<&mut Text, With<GoldUI>>,
+) {
+    let player = query_player.get_single().expect("no player found");
+    let mut text = query_ui.get_single_mut().expect("no gold ui found");
+
+    text.sections[0].value = format!("Gold: {}", player.gold);
 }
