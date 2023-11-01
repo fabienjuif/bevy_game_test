@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+pub const DEFAULT_HEALTH_COLOR: Color = Color::rgb(0.2, 0.8, 0.2);
+
 #[derive(Component)]
 pub struct Health {
     pub value: f32,
@@ -17,6 +19,32 @@ pub struct HealthBar {
     pub entity: Entity,
     pub translation: Vec3,
     pub size: Vec2,
+}
+
+#[derive(Bundle)]
+pub struct HealthBarBundle {
+    pub sprite: SpriteBundle,
+    pub health_bar: HealthBar,
+}
+
+impl HealthBarBundle {
+    pub fn new(entity: Entity, translation: Vec3, size: Vec2) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    color: DEFAULT_HEALTH_COLOR,
+                    custom_size: Some(size),
+                    ..default()
+                },
+                ..default()
+            },
+            health_bar: HealthBar {
+                entity,
+                translation,
+                size,
+            },
+        }
+    }
 }
 
 pub struct HealthBarPlugin;

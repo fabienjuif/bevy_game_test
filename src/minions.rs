@@ -1,6 +1,6 @@
 use crate::{
     common::*,
-    health_bar::{Health, HealthBar},
+    health_bar::{Health, HealthBarBundle},
 };
 use bevy::{
     prelude::*,
@@ -27,7 +27,6 @@ impl Plugin for MinionsPlugin {
     }
 }
 
-// TODO: Use global tranform?
 pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) {
     let mut rng = rand::thread_rng();
 
@@ -64,21 +63,10 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
         ))
         .id();
 
-    commands.spawn((
-        // TODO: do a health bundle and move it to heath_bar crate
-        SpriteBundle {
-            sprite: Sprite {
-                color: DEFAULT_HEALTH_COLOR,
-                custom_size: Some(Vec2::new(10.0, 5.0)),
-                ..default()
-            },
-            ..default()
-        },
-        HealthBar {
-            entity,
-            translation: Vec3::new(0.0, 15.0, 0.1),
-            size: Vec2::new(10.0, 5.0), // TODO: once a bundle make sure this initialise the sprite
-        },
+    commands.spawn(HealthBarBundle::new(
+        entity,
+        Vec3::new(0.0, 15.0, 0.1),
+        Vec2::new(10.0, 5.0),
     ));
 
     trace!("Spawning Minion: {:?}", entity);
