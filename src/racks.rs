@@ -71,7 +71,6 @@ fn spawn_minions(
     }
 }
 
-// TODO: Use global tranform?
 pub fn spawn_rack(commands: &mut Commands, transform: Transform, team: Team) {
     let id = commands
         .spawn((

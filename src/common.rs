@@ -16,9 +16,3 @@ pub struct Team {
     pub id: String,
     pub color: Color,
 }
-
-// TODO: move this in player crate
-#[derive(Component)]
-pub struct Player {
-    pub gold: u32,
-}

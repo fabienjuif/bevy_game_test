@@ -149,7 +149,7 @@ fn destroy_minions(
 // maybe this is a bad idea to have a system per component since the collision event is having all contacts
 // it makes us loop inside collision events multiple time
 fn check_collisions_players(
-    mut query_players: Query<(Entity, &Team, &mut Health), With<Player>>,
+    mut query_players: Query<(Entity, &Team, &mut Health), With<crate::player::Player>>,
     query_minions: Query<(Entity, &Team), With<Minion>>,
     mut collision_events: EventReader<CollisionEvent>,
     // mut contact_force_events: EventReader<ContactForceEvent>,
