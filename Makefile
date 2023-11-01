@@ -6,3 +6,6 @@ start-windows:
 
 release-windows:
 	@cargo build --target=x86_64-pc-windows-msvc --release
+
+release-mac-m1:
+	@cross build --target=aarch64-apple-darwin --release
