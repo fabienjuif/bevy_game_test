@@ -11,7 +11,7 @@ use bevy::{
     time::Time,
     DefaultPlugins,
 };
-use bevy_rapier2d::{prelude::*, render::RapierDebugRenderPlugin};
+use bevy_rapier2d::prelude::*;
 use common::*;
 use health_bar::{Health, HealthBarBundle, HealthBarPlugin};
 use minions::MinionsPlugin;
@@ -56,7 +56,7 @@ fn main() {
 fn init_physics(app: &mut App) {
     app.add_plugins((
         RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
-        RapierDebugRenderPlugin::default(),
+        // RapierDebugRenderPlugin::default(),
     ))
     // removes gravity
     .insert_resource(RapierConfiguration {

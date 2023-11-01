@@ -13,6 +13,7 @@ use rand::Rng;
 
 const MINION_SCALE: f32 = 100.;
 const DESTROY_MINIONS_AFTER_SECS: f32 = 120.;
+const DECAY_VALUE_PER_SEC: f32 = 10.;
 
 pub struct MinionsPlugin;
 
@@ -23,7 +24,16 @@ struct Minion {
 
 impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (update_move_minions, destroy_minions, hurt_player));
+        app.add_systems(
+            Update,
+            (
+                update_move_minions,
+                destroy_minions,
+                check_collisions_players,
+                check_collisions_minions,
+                decay_life,
+            ),
+        );
     }
 }
 
@@ -138,7 +148,7 @@ fn destroy_minions(
 
 // maybe this is a bad idea to have a system per component since the collision event is having all contacts
 // it makes us loop inside collision events multiple time
-fn hurt_player(
+fn check_collisions_players(
     mut query_players: Query<(Entity, &Team, &mut Health), With<Player>>,
     query_minions: Query<(Entity, &Team), With<Minion>>,
     mut collision_events: EventReader<CollisionEvent>,
@@ -199,5 +209,63 @@ fn hurt_player(
             }
             CollisionEvent::Stopped(_, _, _) => {}
         }
+    }
+}
+
+// maybe this is a bad idea to have a system per component since the collision event is having all contacts
+// it makes us loop inside collision events multiple time
+fn check_collisions_minions(
+    mut commands: Commands,
+    mut query_minions: Query<(Entity, &Team, &mut Health), With<Minion>>,
+    mut collision_events: EventReader<CollisionEvent>,
+) {
+    for collision_event in collision_events.iter() {
+        match collision_event {
+            CollisionEvent::Started(e1, e2, _) => {
+                let [mut minion_a, mut minion_b] = match query_minions.get_many_mut([*e1, *e2]) {
+                    Err(_) => continue,
+                    Ok(m) => m,
+                };
+
+                // if they are from the same team, do nothing special
+                if minion_a.1.id == minion_b.1.id {
+                    continue;
+                }
+
+                // hurt each other
+                hurt_minion(&mut commands, minion_a.0, &mut minion_a.2, 1.);
+                hurt_minion(&mut commands, minion_b.0, &mut minion_b.2, 1.);
+
+                trace!(
+                    "minion {} collision with other minion {}",
+                    minion_a.1.id,
+                    minion_b.1.id
+                )
+            }
+            CollisionEvent::Stopped(_, _, _) => {}
+        }
+    }
+}
+
+fn decay_life(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query_minions: Query<(Entity, &mut Health), With<Minion>>,
+) {
+    for (entity, mut health) in &mut query_minions {
+        hurt_minion(
+            &mut commands,
+            entity,
+            &mut health,
+            DECAY_VALUE_PER_SEC * time.delta_seconds(),
+        );
+    }
+}
+
+fn hurt_minion(commands: &mut Commands, entity: Entity, health: &mut Health, value: f32) {
+    health.value -= value;
+    if health.value < 0. {
+        health.value = 0.;
+        commands.entity(entity).despawn_recursive();
     }
 }
