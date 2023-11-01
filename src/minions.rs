@@ -8,6 +8,7 @@ use bevy::{
     time::{Time, Timer},
     utils::default,
 };
+use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 const MINION_SCALE: f32 = 100.;
@@ -45,6 +46,10 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                 ),
                 ..default()
             },
+            RigidBody::Dynamic,
+            Collider::cuboid(5.0, 5.),
+            // Restitution::coefficient(2.),
+            // Friction::coefficient(2.),
             Minion {
                 // to avoid leaks
                 // maybe a better option on top of that is to leach health every seconds on minions and make them die!

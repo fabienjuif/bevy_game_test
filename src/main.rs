@@ -1,5 +1,4 @@
 mod common;
-mod doc_plugin;
 mod health_bar;
 mod minions;
 mod racks;
@@ -12,8 +11,8 @@ use bevy::{
     time::Time,
     DefaultPlugins,
 };
+use bevy_rapier2d::{prelude::*, render::RapierDebugRenderPlugin};
 use common::*;
-use doc_plugin::HelloPlugin;
 use health_bar::{Health, HealthBar, HealthBarPlugin};
 use minions::MinionsPlugin;
 use racks::RacksPlugin;
@@ -33,22 +32,37 @@ struct Hand;
 struct Camera;
 
 fn main() {
-    App::new()
-        .add_plugins((
-            DefaultPlugins.set(LogPlugin {
-                level: Level::TRACE,
-                filter:
-                    "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn"
-                        .to_string(),
-            }),
-            HelloPlugin,
-            MinionsPlugin,
-            RacksPlugin,
-            HealthBarPlugin,
-        ))
-        .add_systems(Startup, setup)
-        .add_systems(Update, (update_axes, update_button_values))
-        .run();
+    let mut app = App::new();
+
+    app.add_plugins((
+        DefaultPlugins.set(LogPlugin {
+            level: Level::TRACE,
+            filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn"
+                .to_string(),
+        }),
+        MinionsPlugin,
+        RacksPlugin,
+        HealthBarPlugin,
+    ));
+
+    init_physics(&mut app);
+
+    app.add_systems(Startup, setup)
+        .add_systems(Update, (update_axes, update_button_values));
+
+    app.run();
+}
+
+fn init_physics(app: &mut App) {
+    app.add_plugins((
+        RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
+        RapierDebugRenderPlugin::default(),
+    ))
+    // removes gravity
+    .insert_resource(RapierConfiguration {
+        gravity: Vec2::new(0.0, 0.0),
+        ..default()
+    });
 }
 
 fn setup(mut commands: Commands) {
@@ -67,6 +81,9 @@ fn setup(mut commands: Commands) {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
+            // RigidBody::KinematicVelocityBased,
+            RigidBody::Dynamic,
+            Collider::cuboid(25.0, 25.),
             LocalPlayer {},
             Health { health: 100. },
             Name("local_player".to_string()),
