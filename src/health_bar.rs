@@ -36,6 +36,7 @@ impl HealthBarBundle {
                     custom_size: Some(size),
                     ..default()
                 },
+                visibility: Visibility::Hidden,
                 ..default()
             },
             health_bar: HealthBar {
@@ -76,13 +77,16 @@ fn clear_orphans_healthbars(
 }
 
 fn update_health_bar_position(
+    mut commands: Commands,
     query_health: Query<&GlobalTransform, With<Health>>,
-    mut query: Query<(&mut Transform, &HealthBar)>,
+    mut query: Query<(&mut Transform, &HealthBar, Entity)>,
 ) {
-    for (mut transform, health_bar) in &mut query {
+    for (mut transform, health_bar, entity) in &mut query {
         if let Ok(parent_transform) = query_health.get(health_bar.entity) {
             transform.translation =
                 parent_transform.to_scale_rotation_translation().2 + health_bar.translation;
+
+            commands.entity(entity).insert(Visibility::Visible);
         }
     }
 }
