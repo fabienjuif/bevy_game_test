@@ -14,7 +14,7 @@ const JOYSTICK_SCALE: f32 = 200.;
 
 #[derive(Component)]
 pub struct Player {
-    pub gold: u32,
+    pub gold: f32,
 }
 
 #[derive(Component)]
@@ -27,7 +27,7 @@ struct Hand;
 struct GoldUI;
 
 #[derive(Component)]
-struct Sword;
+struct Sword(Entity);
 
 impl Sword {
     pub fn collider() -> Collider {
@@ -68,7 +68,7 @@ fn setup(mut commands: Commands) {
             Collider::cuboid(25.0, 25.),
             ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
-            Player { gold: 20 },
+            Player { gold: 20. },
             Health::new(100.),
             Name("local_player".to_string()),
             Team {
@@ -102,7 +102,7 @@ fn setup(mut commands: Commands) {
                     ..default()
                 },
                 Sensor,
-                Sword,
+                Sword(parent.parent_entity()),
             ));
         })
         .id();
@@ -235,28 +235,29 @@ fn update_ui(
 // it makes us loop inside collision events multiple time
 fn check_collisions_sword(
     // mut commands: Commands,
-    query_swords: Query<Entity, With<Sword>>,
-    mut query_health: Query<(Entity, &mut Health)>,
+    query_swords: Query<(Entity, &Sword)>,
+    mut query_player: Query<(&mut Player, &Team)>,
+    mut query_hit_entities: Query<(&Rewards, &Team, &mut Health)>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
             CollisionEvent::Started(e1, e2, _) => {
-                if query_swords
+                let sword = query_swords
                     .get(*e1)
                     .ok()
-                    .or_else(|| query_swords.get(*e2).ok())
-                    .is_none()
-                {
-                    continue;
-                }
-
-                let health = if query_health.contains(*e1) {
-                    query_health.get_mut(*e1).ok()
-                } else {
-                    query_health.get_mut(*e2).ok()
+                    .or_else(|| query_swords.get(*e2).ok());
+                let (_, sword) = match sword {
+                    None => continue,
+                    Some(o) => o,
                 };
-                let (_, mut health) = match health {
+
+                let health = if query_hit_entities.contains(*e1) {
+                    query_hit_entities.get_mut(*e1).ok()
+                } else {
+                    query_hit_entities.get_mut(*e2).ok()
+                };
+                let (rewards, hit_team, mut health) = match health {
                     None => continue,
                     Some(o) => o,
                 };
@@ -264,6 +265,13 @@ fn check_collisions_sword(
                 // hurt
                 // TODO: health should have a function to remove some offset
                 health.value -= 20.;
+
+                // player attached to this sword receive gold
+                if let Ok((mut player, team)) = query_player.get_mut(sword.0) {
+                    if team.id != hit_team.id {
+                        player.gold += rewards.gold;
+                    }
+                }
             }
             CollisionEvent::Stopped(_, _, _) => {}
         }

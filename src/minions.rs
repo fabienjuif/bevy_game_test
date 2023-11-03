@@ -14,6 +14,7 @@ use rand::Rng;
 const MINION_SCALE: f32 = 100.;
 const DESTROY_MINIONS_AFTER_SECS: f32 = 120.;
 const DECAY_VALUE_PER_SEC: f32 = 10.;
+const REWARDS_GOLD: f32 = 1.;
 
 pub struct MinionsPlugin;
 
@@ -69,6 +70,7 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                 ),
             },
             Health::new(20.),
+            Rewards { gold: REWARDS_GOLD },
             team,
         ))
         .id();
