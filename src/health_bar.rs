@@ -12,6 +12,21 @@ impl Health {
     pub fn new(max: f32) -> Self {
         Self { value: max, max }
     }
+
+    pub fn hit(&mut self, value: f32) -> &Self {
+        if value < 0. {
+            return self;
+        }
+        self.value -= value;
+        if self.value < 0. {
+            self.value = 0.;
+        }
+        self
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.value <= 0.
+    }
 }
 
 #[derive(Component)]

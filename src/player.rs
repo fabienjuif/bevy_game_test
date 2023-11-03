@@ -263,8 +263,7 @@ fn check_collisions_sword(
                 };
 
                 // hurt
-                // TODO: health should have a function to remove some offset
-                health.value -= 20.;
+                health.hit(20.);
 
                 // player attached to this sword receive gold
                 if let Ok((mut player, team)) = query_player.get_mut(sword.0) {

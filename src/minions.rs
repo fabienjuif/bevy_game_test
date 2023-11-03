@@ -133,17 +133,29 @@ fn update_move_minions(
 fn destroy_minions(
     time: Res<Time>,
     mut commands: Commands,
-    mut query: Query<(&mut Minion, &Transform, Entity)>,
+    mut query: Query<(&mut Minion, &Transform, &Health, Entity)>,
 ) {
-    for (mut minion, transform, entity) in &mut query {
-        let escape_edges_of_the_world = transform.translation.x.abs() >= GAME_MAX_WIDTH / 2.
-            || transform.translation.y.abs() >= GAME_MAX_HEIGHT / 2.;
-        let too_old = minion.destroy_timer.tick(time.delta()).just_finished();
+    let mut kill = |entity| {
+        trace!("Unspawning Minion: {:?}", entity);
+        commands.entity(entity).despawn_recursive();
+    };
 
-        if escape_edges_of_the_world || too_old {
-            trace!("Unspawning Minion: {:?}", entity);
-            commands.entity(entity).despawn_recursive();
-            continue;
+    for (mut minion, transform, health, entity) in &mut query {
+        // edge of the world
+        if transform.translation.x.abs() >= GAME_MAX_WIDTH / 2.
+            || transform.translation.y.abs() >= GAME_MAX_HEIGHT / 2.
+        {
+            kill(entity);
+        }
+
+        // too old
+        if minion.destroy_timer.tick(time.delta()).just_finished() {
+            kill(entity);
+        }
+
+        // just not enough health
+        if health.is_dead() {
+            kill(entity);
         }
     }
 }
@@ -198,10 +210,7 @@ fn check_collisions_players(
                 }
 
                 // hurt the player
-                player.2.value -= 1.;
-                if player.2.value < 0. {
-                    player.2.value = 0.
-                }
+                player.2.hit(1.);
 
                 trace!(
                     "minion {} collision with the player {}",
@@ -265,9 +274,7 @@ fn decay_life(
 }
 
 fn hurt_minion(commands: &mut Commands, entity: Entity, health: &mut Health, value: f32) {
-    health.value -= value;
-    if health.value < 0. {
-        health.value = 0.;
+    if health.hit(value).is_dead() {
         commands.entity(entity).despawn_recursive();
     }
 }
