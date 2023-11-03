@@ -12,9 +12,14 @@ use bevy_rapier2d::prelude::*;
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
 const JOYSTICK_SCALE: f32 = 200.;
 
+pub struct Cooldowns {
+    pub sword: Timer,
+}
+
 #[derive(Component)]
 pub struct Player {
     pub gold: f32,
+    pub cooldowns: Cooldowns,
 }
 
 #[derive(Component)]
@@ -27,11 +32,38 @@ struct Hand;
 struct GoldUI;
 
 #[derive(Component)]
-struct Sword(Entity);
+struct Sword {
+    entity: Entity,
+    duration: Timer,
+}
 
-impl Sword {
-    pub fn collider() -> Collider {
-        Collider::cuboid(50.0, 25.)
+#[derive(Bundle)]
+struct SwordBundle {
+    pub sprite: SpriteBundle,
+    pub sword: Sword,
+    pub sensor: Sensor,
+    pub collider: Collider,
+}
+
+impl SwordBundle {
+    pub fn new(parent_entity: Entity) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(0.25, 0.6, 0.25),
+                    custom_size: Some(Vec2::new(100.0, 50.0)),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, 35.0, 10.0),
+                ..default()
+            },
+            collider: Collider::cuboid(50.0, 25.),
+            sensor: Sensor,
+            sword: Sword {
+                entity: parent_entity,
+                duration: Timer::from_seconds(0.2, TimerMode::Once),
+            },
+        }
     }
 }
 
@@ -46,12 +78,17 @@ impl Plugin for LocalPlayerPlugin {
                 update_button_values,
                 check_collisions_sword,
                 update_ui,
+                update_sword,
+                update_cooldowns,
             ),
         );
     }
 }
 
 fn setup(mut commands: Commands) {
+    let mut sword_cooldown = Timer::from_seconds(0.3, TimerMode::Once);
+    sword_cooldown.set_elapsed(sword_cooldown.duration());
+
     let entity = commands
         .spawn((
             SpriteBundle {
@@ -68,7 +105,12 @@ fn setup(mut commands: Commands) {
             Collider::cuboid(25.0, 25.),
             ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
-            Player { gold: 20. },
+            Player {
+                gold: 20.,
+                cooldowns: Cooldowns {
+                    sword: sword_cooldown,
+                },
+            },
             Health::new(100.),
             Name("local_player".to_string()),
             Team {
@@ -88,21 +130,6 @@ fn setup(mut commands: Commands) {
                     ..default()
                 },
                 Hand {},
-            ));
-
-            parent.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::rgb(0.25, 0.6, 0.25),
-                        custom_size: Some(Vec2::new(100.0, 50.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(0.0, 35.0, 10.0),
-                    visibility: Visibility::Hidden,
-                    ..default()
-                },
-                Sensor,
-                Sword(parent.parent_entity()),
             ));
         })
         .id();
@@ -179,44 +206,37 @@ fn update_axes(
 fn update_button_values(
     mut commands: Commands,
     mut events: EventReader<GamepadButtonChangedEvent>,
-    mut query_local_player: Query<(&mut Player, &Transform, &Team, &Children), With<LocalPlayer>>,
+    mut query_local_player: Query<
+        (&mut Player, &Transform, &Team, Entity, &Children),
+        With<LocalPlayer>,
+    >,
     mut query: Query<&mut Sprite, With<Hand>>,
-    query_sword: Query<Entity, With<Sword>>,
 ) {
     for button_event in events.iter() {
+        let (mut player, transform, team, entity, children) = query_local_player.single_mut();
         if button_event.button_type == GamepadButtonType::South {
-            for (_, _, _, children) in &query_local_player {
-                for child in children {
-                    if let Ok(mut sprite) = query.get_mut(*child) {
-                        if button_event.value != 0. {
-                            sprite.color = Color::rgb(0.25, 0.75, 0.25)
-                        } else {
-                            sprite.color = DEFAULT_HAND_COLOR
+            for child in children {
+                if let Ok(mut sprite) = query.get_mut(*child) {
+                    if button_event.value != 0. {
+                        if player.cooldowns.sword.finished() {
+                            sprite.color = Color::rgb(0.25, 0.75, 0.25);
+                            let sword_entity = commands.spawn(SwordBundle::new(entity)).id();
+                            commands.entity(entity).add_child(sword_entity);
+                            player.cooldowns.sword.reset();
                         }
-                    }
-
-                    if let Ok(entity) = query_sword.get(*child) {
-                        if button_event.value != 0. {
-                            commands
-                                .entity(entity)
-                                .insert((Sword::collider(), Visibility::Visible));
-                        } else {
-                            commands
-                                .entity(entity)
-                                .remove::<Collider>()
-                                .insert(Visibility::Hidden);
-                        }
+                    } else {
+                        sprite.color = DEFAULT_HAND_COLOR;
                     }
                 }
             }
         }
 
-        if button_event.button_type == GamepadButtonType::East && button_event.value != 0. {
-            let (mut player, transform, team, _) = query_local_player.single_mut();
-            if player.gold >= RACK_GOLD_VALUE {
-                crate::racks::spawn_rack(&mut commands, *transform, team.clone());
-                player.gold -= RACK_GOLD_VALUE;
-            }
+        if button_event.button_type == GamepadButtonType::East
+            && button_event.value != 0.
+            && player.gold >= RACK_GOLD_VALUE
+        {
+            crate::racks::spawn_rack(&mut commands, *transform, team.clone());
+            player.gold -= RACK_GOLD_VALUE;
         }
     }
 }
@@ -266,7 +286,7 @@ fn check_collisions_sword(
                 health.hit(20.);
 
                 // player attached to this sword receive gold
-                if let Ok((mut player, team)) = query_player.get_mut(sword.0) {
+                if let Ok((mut player, team)) = query_player.get_mut(sword.entity) {
                     if team.id != hit_team.id {
                         player.gold += rewards.gold;
                     }
@@ -274,5 +294,23 @@ fn check_collisions_sword(
             }
             CollisionEvent::Stopped(_, _, _) => {}
         }
+    }
+}
+
+fn update_sword(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query_swords: Query<(Entity, &mut Sword)>,
+) {
+    for (entity, mut sword) in query_swords.iter_mut() {
+        if sword.duration.tick(time.delta()).just_finished() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn update_cooldowns(time: Res<Time>, mut query_players: Query<&mut Player>) {
+    for mut player in query_players.iter_mut() {
+        player.cooldowns.sword.tick(time.delta());
     }
 }
