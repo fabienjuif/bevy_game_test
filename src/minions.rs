@@ -226,55 +226,34 @@ fn check_collisions_players(
 // maybe this is a bad idea to have a system per component since the collision event is having all contacts
 // it makes us loop inside collision events multiple time
 fn check_collisions_minions(
-    mut commands: Commands,
-    mut query_minions: Query<(Entity, &Team, &mut Health), With<Minion>>,
+    mut query_minions: Query<(&Team, &mut Health), With<Minion>>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
             CollisionEvent::Started(e1, e2, _) => {
-                let [mut minion_a, mut minion_b] = match query_minions.get_many_mut([*e1, *e2]) {
-                    Err(_) => continue,
-                    Ok(m) => m,
-                };
+                let [(team_a, mut health_a), (team_b, mut health_b)] =
+                    match query_minions.get_many_mut([*e1, *e2]) {
+                        Err(_) => continue,
+                        Ok(m) => m,
+                    };
 
                 // if they are from the same team, do nothing special
-                if minion_a.1.id == minion_b.1.id {
+                if team_a.id == team_b.id {
                     continue;
                 }
 
                 // hurt each other
-                hurt_minion(&mut commands, minion_a.0, &mut minion_a.2, 1.);
-                hurt_minion(&mut commands, minion_b.0, &mut minion_b.2, 1.);
-
-                trace!(
-                    "minion {} collision with other minion {}",
-                    minion_a.1.id,
-                    minion_b.1.id
-                )
+                health_a.hit(1.);
+                health_b.hit(1.);
             }
             CollisionEvent::Stopped(_, _, _) => {}
         }
     }
 }
 
-fn decay_life(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut query_minions: Query<(Entity, &mut Health), With<Minion>>,
-) {
-    for (entity, mut health) in &mut query_minions {
-        hurt_minion(
-            &mut commands,
-            entity,
-            &mut health,
-            DECAY_VALUE_PER_SEC * time.delta_seconds(),
-        );
-    }
-}
-
-fn hurt_minion(commands: &mut Commands, entity: Entity, health: &mut Health, value: f32) {
-    if health.hit(value).is_dead() {
-        commands.entity(entity).despawn_recursive();
+fn decay_life(time: Res<Time>, mut query_minions: Query<&mut Health, With<Minion>>) {
+    for mut health in &mut query_minions {
+        health.hit(DECAY_VALUE_PER_SEC * time.delta_seconds());
     }
 }
