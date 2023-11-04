@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
     sprite::{Sprite, SpriteBundle},
     time::{Time, Timer},
-    utils::default,
+    utils::{default, HashMap},
 };
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
@@ -86,47 +86,57 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
 
 fn update_move_minions(
     time: Res<Time>,
-    // if we want minion to move over other minions later, maybe we want something like this instead of having 2 queries
-    //      let mut combinations = query.iter_combinations_mut();
-    //      while let Some([mut a, mut b]) = combinations.fetch_next() {
-    mut query: Query<(&mut Transform, &Team), With<Minion>>,
-    query_targets: Query<(&mut Transform, &Team), Without<Minion>>,
+    mut query: Query<(&mut Transform, Entity, &Team, Option<&Minion>)>,
 ) {
-    for (mut transform, team) in &mut query {
-        // acquire new target
-        let mut closer_target: &Transform = &Transform::from_xyz(0., 0., 0.);
-        let mut found_target = false;
-        for (target_transform, target_team) in &query_targets {
-            if team.id == target_team.id {
-                continue;
-            }
+    let mut closest_translations: HashMap<Entity, Vec3> = HashMap::new();
 
-            if !found_target {
-                found_target = true;
-                closer_target = target_transform;
-                continue;
-            }
-            if transform
-                .translation
-                .distance_squared(closer_target.translation)
-                > transform
-                    .translation
-                    .distance_squared(target_transform.translation)
-            {
-                closer_target = target_transform;
-            }
-        }
-
-        // move toward the target
-        if !found_target {
+    let mut combinations = query.iter_combinations_mut();
+    while let Some(
+        [(transform_a, entity_a, team_a, minion_a), (transform_b, entity_b, team_b, minion_b)],
+    ) = combinations.fetch_next()
+    {
+        if minion_a.is_none() && minion_b.is_none() {
             continue;
         }
-        let normalized_target_position =
-            (closer_target.translation - transform.translation).normalize();
-        transform.translation.x +=
-            time.delta_seconds() * MINION_SCALE * normalized_target_position.x;
-        transform.translation.y +=
-            time.delta_seconds() * MINION_SCALE * normalized_target_position.y;
+
+        if team_a.id == team_b.id {
+            continue;
+        }
+
+        let (minion_transform, minion_entity, target_translation) = if minion_a.is_some() {
+            (transform_a, entity_a, transform_b.translation)
+        } else {
+            (transform_b, entity_b, transform_a.translation)
+        };
+
+        // found a translation for this entity
+        // but this is farther combination so we do nothing
+        if let Some(closest_translation) = closest_translations.get(&minion_entity) {
+            if minion_transform
+                .translation
+                .distance_squared(*closest_translation)
+                <= minion_transform
+                    .translation
+                    .distance_squared(target_translation)
+            {
+                continue;
+            }
+        }
+
+        // we are here if we found a closer combination
+        // so we insert it and move toward this combination
+        closest_translations.insert(minion_entity, target_translation);
+    }
+
+    for (entity, translation) in closest_translations {
+        if let Ok((mut transform, _, _, _)) = query.get_mut(entity) {
+            let normalized_target_position = (translation - transform.translation).normalize();
+
+            transform.translation.x +=
+                time.delta_seconds() * MINION_SCALE * normalized_target_position.x;
+            transform.translation.y +=
+                time.delta_seconds() * MINION_SCALE * normalized_target_position.y;
+        }
     }
 }
 
