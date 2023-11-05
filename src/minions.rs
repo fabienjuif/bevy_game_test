@@ -6,7 +6,6 @@ use bevy::{
     utils::{default, HashMap},
 };
 use bevy_rapier2d::prelude::*;
-use rand::Rng;
 
 const MINION_SCALE: f32 = 100.;
 const DESTROY_MINIONS_AFTER_SECS: f32 = 120.;
@@ -30,30 +29,33 @@ impl Plugin for MinionsPlugin {
     }
 }
 
-pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) {
-    let mut rng = rand::thread_rng();
+#[derive(Bundle)]
+pub struct MinionBundle {
+    minion: Minion,
+    sprite: SpriteBundle,
+    health: Health,
+    rewards: Rewards,
+    team: Team,
 
-    let entity = commands
-        .spawn((
-            SpriteBundle {
+    // physics
+    body: RigidBody,
+    collider: Collider,
+    events: ActiveEvents,
+}
+
+impl MinionBundle {
+    pub fn new(translation: Vec3, team: Team) -> Self {
+        MinionBundle {
+            sprite: SpriteBundle {
                 sprite: Sprite {
                     color: team.color,
                     custom_size: Some(Vec2::new(10.0, 10.0)),
                     ..default()
                 },
-                transform: Transform::from_xyz(
-                    transform.translation.x + rng.gen_range(-40.0..40.0),
-                    transform.translation.y + rng.gen_range(-40.0..40.0),
-                    0.0,
-                ),
+                transform: Transform::from_translation(translation),
                 ..default()
             },
-            RigidBody::Dynamic,
-            Collider::cuboid(5.0, 5.),
-            ActiveEvents::COLLISION_EVENTS,
-            // Restitution::coefficient(2.),
-            // Friction::coefficient(2.),
-            Minion {
+            minion: Minion {
                 // to avoid leaks
                 // maybe a better option on top of that is to leach health every seconds on minions and make them die!
                 destroy_timer: Timer::from_seconds(
@@ -61,15 +63,17 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                     bevy::time::TimerMode::Once,
                 ),
             },
-            Health::new(20.)
+            health: Health::new(20.)
                 .with_health_bar_position(Vec3::new(0.0, 15.0, 0.1))
                 .with_health_bar_size(Vec2::new(10.0, 5.0)),
-            Rewards { gold: REWARDS_GOLD },
+            rewards: Rewards { gold: REWARDS_GOLD },
             team,
-        ))
-        .id();
-
-    trace!("Spawning Minion: {:?}", entity);
+            // physics
+            body: RigidBody::Dynamic,
+            collider: Collider::cuboid(5.0, 5.),
+            events: ActiveEvents::COLLISION_EVENTS,
+        }
+    }
 }
 
 fn update_move_minions(

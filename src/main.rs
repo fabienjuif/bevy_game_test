@@ -1,3 +1,4 @@
+mod castles;
 mod common;
 mod health;
 mod minions;
@@ -11,6 +12,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_rapier2d::prelude::*;
+use castles::CastlesPlugin;
 use health::HealthPlugin;
 use minions::MinionsPlugin;
 use player::LocalPlayerPlugin;
@@ -32,6 +34,7 @@ fn main() {
         TeamsPlugin,
         MinionsPlugin,
         RacksPlugin,
+        CastlesPlugin,
         HealthPlugin,
         LocalPlayerPlugin,
     ))

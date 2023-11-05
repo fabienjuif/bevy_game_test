@@ -8,18 +8,21 @@ use bevy_rapier2d::prelude::*;
 use crate::{
     common::Rewards,
     health::Health,
+    minions::MinionBundle,
     teams::{Team, Teams},
 };
+
+use rand::Rng;
 
 pub const RACK_GOLD_VALUE: f32 = 10.;
 
 #[derive(Component)]
 pub struct Rack {
-    minion_spawn_timer: Timer,
-    minion_spawn_timer_q: Timer,
-    minion_spawn_count: u32,
-    minion_spawned_count: u32,
-    minion_spawning: bool,
+    pub minion_spawn_timer: Timer,
+    pub minion_spawn_timer_q: Timer,
+    pub minion_spawn_count: u32,
+    pub minion_spawned_count: u32,
+    pub minion_spawning: bool,
 }
 
 #[derive(Bundle)]
@@ -96,9 +99,11 @@ fn setup(mut commands: Commands, teams: Res<Teams>) {
 fn spawn_minions(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(&mut Rack, &Transform, &Team)>,
+    mut query: Query<(&mut Rack, &Collider, &Transform, &Team)>,
 ) {
-    for (mut rack, transform, team) in &mut query {
+    let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
+
+    for (mut rack, collider, transform, team) in &mut query {
         // ticks timers
         rack.minion_spawn_timer_q.tick(time.delta());
         rack.minion_spawn_timer.tick(time.delta());
@@ -116,12 +121,32 @@ fn spawn_minions(
             && rack.minion_spawn_timer_q.just_finished()
             && rack.minion_spawned_count < rack.minion_spawn_count
         {
-            crate::minions::spawn_minion(&mut commands, transform, team.clone());
-            rack.minion_spawned_count += 1;
+            // TODO: should RNG an angle instead
+            if let Some(cuboid) = collider.as_cuboid() {
+                let mut offset_x = cuboid.half_extents().x + rng.gen_range(2.0..10.0);
+                let mut offset_y = cuboid.half_extents().y + rng.gen_range(2.0..10.0);
 
-            if rack.minion_spawned_count >= rack.minion_spawn_count {
-                debug!("[rack] every minions are spawned!");
-                rack.minion_spawning = false;
+                if rng.gen_bool(0.5) {
+                    offset_x *= -1.;
+                }
+                if rng.gen_bool(0.5) {
+                    offset_y *= -1.;
+                }
+
+                commands.spawn(MinionBundle::new(
+                    Vec3::new(
+                        transform.translation.x + offset_x,
+                        transform.translation.y + offset_y,
+                        transform.translation.z,
+                    ),
+                    team.clone(),
+                ));
+                rack.minion_spawned_count += 1;
+
+                if rack.minion_spawned_count >= rack.minion_spawn_count {
+                    debug!("[rack] every minions are spawned!");
+                    rack.minion_spawning = false;
+                }
             }
         }
     }
