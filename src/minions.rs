@@ -1,8 +1,4 @@
-use crate::{
-    common::*,
-    health_bar::{Health, HealthBarBundle},
-    teams::Team,
-};
+use crate::{common::*, health::Health, teams::Team};
 use bevy::{
     prelude::*,
     sprite::{Sprite, SpriteBundle},
@@ -30,12 +26,12 @@ impl Plugin for MinionsPlugin {
             Update,
             (
                 update_move_minions,
-                destroy_minions,
                 check_collisions_players,
                 check_collisions_minions,
                 decay_life,
             ),
-        );
+        )
+        .add_systems(PostUpdate, destroy_minions);
     }
 }
 
@@ -51,8 +47,8 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                     ..default()
                 },
                 transform: Transform::from_xyz(
-                    transform.translation.x + rng.gen_range(-20.0..20.0),
-                    transform.translation.y + rng.gen_range(-20.0..20.0),
+                    transform.translation.x + rng.gen_range(-40.0..40.0),
+                    transform.translation.y + rng.gen_range(-40.0..40.0),
                     0.0,
                 ),
                 ..default()
@@ -70,17 +66,13 @@ pub fn spawn_minion(commands: &mut Commands, transform: &Transform, team: Team) 
                     bevy::time::TimerMode::Once,
                 ),
             },
-            Health::new(20.),
+            Health::new(20.)
+                .with_health_bar_position(Vec3::new(0.0, 15.0, 0.1))
+                .with_health_bar_size(Vec2::new(10.0, 5.0)),
             Rewards { gold: REWARDS_GOLD },
             team,
         ))
         .id();
-
-    commands.spawn(HealthBarBundle::new(
-        entity,
-        Vec3::new(0.0, 15.0, 0.1),
-        Vec2::new(10.0, 5.0),
-    ));
 
     trace!("Spawning Minion: {:?}", entity);
 }

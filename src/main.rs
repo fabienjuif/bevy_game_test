@@ -1,5 +1,5 @@
 mod common;
-mod health_bar;
+mod health;
 mod minions;
 mod player;
 mod racks;
@@ -11,7 +11,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_rapier2d::prelude::*;
-use health_bar::HealthBarPlugin;
+use health::HealthPlugin;
 use minions::MinionsPlugin;
 use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
@@ -32,7 +32,7 @@ fn main() {
         TeamsPlugin,
         MinionsPlugin,
         RacksPlugin,
-        HealthBarPlugin,
+        HealthPlugin,
         LocalPlayerPlugin,
     ))
     // --- physics ---

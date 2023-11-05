@@ -1,5 +1,5 @@
 use crate::common::*;
-use crate::health_bar::{Health, HealthBarBundle};
+use crate::health::Health;
 use crate::racks::{RackBundle, RACK_GOLD_VALUE};
 use crate::teams::{Team, Teams};
 use bevy::{
@@ -90,7 +90,7 @@ fn setup(mut commands: Commands, teams: Res<Teams>) {
     let mut sword_cooldown = Timer::from_seconds(0.3, TimerMode::Once);
     sword_cooldown.set_elapsed(sword_cooldown.duration());
 
-    let entity = commands
+    commands
         .spawn((
             SpriteBundle {
                 sprite: Sprite {
@@ -112,7 +112,9 @@ fn setup(mut commands: Commands, teams: Res<Teams>) {
                     sword: sword_cooldown,
                 },
             },
-            Health::new(100.),
+            Health::new(100.)
+                .with_health_bar_position(Vec3::new(0.0, 40.0, 0.1))
+                .with_health_bar_size(Vec2::new(50.0, 5.0)),
             Name("local_player".to_string()),
             teams.get_expect("a".into()),
         ))
@@ -129,14 +131,7 @@ fn setup(mut commands: Commands, teams: Res<Teams>) {
                 },
                 Hand {},
             ));
-        })
-        .id();
-
-    commands.spawn(HealthBarBundle::new(
-        entity,
-        Vec3::new(0.0, 40.0, 0.1),
-        Vec2::new(50.0, 5.0),
-    ));
+        });
 }
 
 fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -255,7 +250,7 @@ fn check_collisions_sword(
     // mut commands: Commands,
     query_swords: Query<(Entity, &Sword)>,
     mut query_player: Query<(&mut Player, &Team)>,
-    mut query_hit_entities: Query<(&Rewards, &Team, &mut Health)>,
+    mut query_hit_entities: Query<(Option<&Rewards>, &Team, &mut Health)>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     for collision_event in collision_events.iter() {
@@ -275,18 +270,20 @@ fn check_collisions_sword(
                 } else {
                     query_hit_entities.get_mut(*e2).ok()
                 };
-                let (rewards, hit_team, mut health) = match health {
+                let (rewards_opt, hit_team, mut health) = match health {
                     None => continue,
                     Some(o) => o,
                 };
 
                 // hurt
-                health.hit(20.);
-
-                // player attached to this sword receive gold
-                if let Ok((mut player, team)) = query_player.get_mut(sword.entity) {
-                    if team.id != hit_team.id {
-                        player.gold += rewards.gold;
+                if health.hit(20.).is_dead() {
+                    // player attached to this sword receive gold
+                    if let Ok((mut player, team)) = query_player.get_mut(sword.entity) {
+                        if let Some(rewards) = rewards_opt {
+                            if team.id != hit_team.id {
+                                player.gold += rewards.gold;
+                            }
+                        }
                     }
                 }
             }

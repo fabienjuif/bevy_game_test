@@ -3,8 +3,13 @@ use bevy::{
     sprite::{Sprite, SpriteBundle},
     time::{Time, Timer, TimerMode},
 };
+use bevy_rapier2d::prelude::*;
 
-use crate::teams::{Team, Teams};
+use crate::{
+    common::Rewards,
+    health::Health,
+    teams::{Team, Teams},
+};
 
 pub const RACK_GOLD_VALUE: f32 = 10.;
 
@@ -22,15 +27,22 @@ pub struct RackBundle {
     pub sprite_bundle: SpriteBundle,
     pub team: Team,
     pub rack: Rack,
+    pub health: Health,
+    pub rewards: Rewards,
+    pub rigid_body: RigidBody,
+    pub collider: Collider,
+    pub events: ActiveEvents,
+    pub mass: ColliderMassProperties,
 }
 
 impl RackBundle {
     pub fn new(team: Team, transform: Transform) -> Self {
+        let size = Vec2::new(20.0, 20.0);
         RackBundle {
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: team.color,
-                    custom_size: Some(Vec2::new(20.0, 20.0)),
+                    custom_size: Some(size),
                     ..default()
                 },
                 transform,
@@ -40,10 +52,18 @@ impl RackBundle {
             rack: Rack {
                 minion_spawning: false,
                 minion_spawned_count: 0,
-                minion_spawn_count: 10,
+                minion_spawn_count: 5,
                 minion_spawn_timer: Timer::from_seconds(3., TimerMode::Repeating),
                 minion_spawn_timer_q: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
+            health: Health::new(80.)
+                .with_health_bar_position(Vec3::new(0.0, 20.0, 0.0))
+                .with_health_bar_size(Vec2::new(size.x, 5.)),
+            rewards: Rewards { gold: 100. },
+            rigid_body: RigidBody::Dynamic,
+            collider: Collider::cuboid(size.x / 2., size.y / 2.),
+            events: ActiveEvents::COLLISION_EVENTS,
+            mass: ColliderMassProperties::Mass(0.),
         }
     }
 }
@@ -52,12 +72,13 @@ pub struct RacksPlugin;
 
 impl Plugin for RacksPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_rack)
-            .add_systems(Update, spawn_minions);
+        app.add_systems(Startup, setup)
+            .add_systems(Update, spawn_minions)
+            .add_systems(PostUpdate, destroy);
     }
 }
 
-fn setup_rack(mut commands: Commands, teams: Res<Teams>) {
+fn setup(mut commands: Commands, teams: Res<Teams>) {
     commands.spawn(RackBundle::new(
         teams.get_expect("b".into()),
         Transform::from_xyz(200.0, 200.0, 0.),
@@ -102,6 +123,21 @@ fn spawn_minions(
                 debug!("[rack] every minions are spawned!");
                 rack.minion_spawning = false;
             }
+        }
+    }
+}
+
+// TODO: maybe this system can be retrieve from health bar crate (give the type and insert it in the filter?)
+fn destroy(mut commands: Commands, mut query: Query<(&Health, Entity), With<Rack>>) {
+    let mut kill = |entity| {
+        trace!("Unspawning Minion: {:?}", entity);
+        commands.entity(entity).despawn_recursive();
+    };
+
+    for (health, entity) in &mut query {
+        // just not enough health
+        if health.is_dead() {
+            kill(entity);
         }
     }
 }
