@@ -1,6 +1,7 @@
 use crate::{
     common::*,
     health_bar::{Health, HealthBarBundle},
+    teams::Team,
 };
 use bevy::{
     prelude::*,

@@ -1,6 +1,7 @@
 use crate::common::*;
 use crate::health_bar::{Health, HealthBarBundle};
-use crate::racks::RACK_GOLD_VALUE;
+use crate::racks::{RackBundle, RACK_GOLD_VALUE};
+use crate::teams::{Team, Teams};
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
@@ -85,7 +86,7 @@ impl Plugin for LocalPlayerPlugin {
     }
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, teams: Res<Teams>) {
     let mut sword_cooldown = Timer::from_seconds(0.3, TimerMode::Once);
     sword_cooldown.set_elapsed(sword_cooldown.duration());
 
@@ -100,8 +101,8 @@ fn setup(mut commands: Commands) {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
-            // RigidBody::KinematicVelocityBased,
-            RigidBody::Dynamic,
+            RigidBody::KinematicVelocityBased,
+            // RigidBody::Dynamic,
             Collider::cuboid(25.0, 25.),
             ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
@@ -113,10 +114,7 @@ fn setup(mut commands: Commands) {
             },
             Health::new(100.),
             Name("local_player".to_string()),
-            Team {
-                id: "a".to_string(),
-                color: Color::rgb(0.3, 0.3, 0.8),
-            },
+            teams.get_expect("a".into()),
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -235,7 +233,7 @@ fn update_button_values(
             && button_event.value != 0.
             && player.gold >= RACK_GOLD_VALUE
         {
-            crate::racks::spawn_rack(&mut commands, *transform, team.clone());
+            commands.spawn(RackBundle::new(team.clone(), *transform));
             player.gold -= RACK_GOLD_VALUE;
         }
     }

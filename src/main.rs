@@ -3,6 +3,7 @@ mod health_bar;
 mod minions;
 mod player;
 mod racks;
+mod teams;
 
 use bevy::{
     log::{Level, LogPlugin},
@@ -14,6 +15,7 @@ use health_bar::HealthBarPlugin;
 use minions::MinionsPlugin;
 use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
+use teams::TeamsPlugin;
 
 #[derive(Component)]
 struct Camera;
@@ -27,6 +29,7 @@ fn main() {
             filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn"
                 .to_string(),
         }),
+        TeamsPlugin,
         MinionsPlugin,
         RacksPlugin,
         HealthBarPlugin,
