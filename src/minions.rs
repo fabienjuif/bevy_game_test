@@ -24,12 +24,7 @@ impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (
-                update_move_minions,
-                check_collisions_players,
-                check_collisions_minions,
-                decay_life,
-            ),
+            (update_move_minions, check_collisions_minions, decay_life),
         )
         .add_systems(PostUpdate, destroy_minions);
     }
@@ -165,90 +160,56 @@ fn destroy_minions(
 
 // maybe this is a bad idea to have a system per component since the collision event is having all contacts
 // it makes us loop inside collision events multiple time
-fn check_collisions_players(
-    mut query_players: Query<(Entity, &Team, &mut Health), With<crate::player::Player>>,
-    query_minions: Query<(Entity, &Team), With<Minion>>,
+// TODO: We can have a more global system to handle that in one loop querying "atker" component (with a team),
+// TODO: and putting reward in the team rather than in the player, or we want to stick of having reward on each entity so when a entity die its reward are huge?
+fn check_collisions_minions(
+    mut query_minions: Query<(&Team, &mut Health), With<Minion>>,
+    mut query_hit_entities: Query<(&Team, &mut Health), Without<Minion>>,
     mut collision_events: EventReader<CollisionEvent>,
-    // mut contact_force_events: EventReader<ContactForceEvent>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
             CollisionEvent::Started(e1, e2, _) => {
-                let minion = match query_minions
+                if query_minions.contains(*e1) && query_minions.contains(*e2) {
+                    let [(team_a, mut health_a), (team_b, mut health_b)] =
+                        match query_minions.get_many_mut([*e1, *e2]) {
+                            Err(_) => continue,
+                            Ok(m) => m,
+                        };
+
+                    // if they are from the same team, do nothing special
+                    if team_a.id == team_b.id {
+                        continue;
+                    }
+
+                    // hurt each other (TODO: maybe they are hurting each other twice if the couple is twice in the events (a, b) and (b, a))
+                    health_a.hit(1.);
+                    health_b.hit(1.);
+
+                    continue;
+                }
+
+                if let Some((minion_team, _)) = query_minions
                     .get(*e1)
                     .ok()
                     .or_else(|| query_minions.get(*e2).ok())
                 {
-                    None => continue,
-                    Some(p) => p,
-                };
+                    if let Ok((team, mut health)) = query_hit_entities.get_mut(*e1) {
+                        // if they are from the same team, do nothing special
+                        if minion_team.id == team.id {
+                            continue;
+                        }
 
-                // to avoid to borrow twice the query check with which entity the minion is resolved
-                // and take the other one to check if this is a player, this hacky way of doing it
-                // I am sure rust can resolve this better, here the first attempt in case someone
-                // want to explain me how to resolve it with Rust
-                //
-                // let player = match query_players
-                //     .get_mut(*e1)
-                //     .ok()
-                //     .or_else(|| query_players.get_mut(*e2).ok())
-                // {
-                //     None => continue,
-                //     Some(p) => p,
-                // };
-                //
-                let player = if query_players.contains(*e1) {
-                    query_players.get_mut(*e1).ok()
-                } else {
-                    query_players.get_mut(*e2).ok()
-                };
-                let mut player = match player {
-                    None => continue,
-                    Some(p) => p,
-                };
+                        health.hit(1.);
+                    } else if let Ok((team, mut health)) = query_hit_entities.get_mut(*e2) {
+                        // if they are from the same team, do nothing special
+                        if minion_team.id == team.id {
+                            continue;
+                        }
 
-                // if they are from the same team, do nothing special
-                if player.1.id == minion.1.id {
-                    continue;
+                        health.hit(1.);
+                    }
                 }
-
-                // hurt the player
-                player.2.hit(1.);
-
-                trace!(
-                    "minion {} collision with the player {}",
-                    minion.1.id,
-                    player.1.id
-                )
-            }
-            CollisionEvent::Stopped(_, _, _) => {}
-        }
-    }
-}
-
-// maybe this is a bad idea to have a system per component since the collision event is having all contacts
-// it makes us loop inside collision events multiple time
-fn check_collisions_minions(
-    mut query_minions: Query<(&Team, &mut Health), With<Minion>>,
-    mut collision_events: EventReader<CollisionEvent>,
-) {
-    for collision_event in collision_events.iter() {
-        match collision_event {
-            CollisionEvent::Started(e1, e2, _) => {
-                let [(team_a, mut health_a), (team_b, mut health_b)] =
-                    match query_minions.get_many_mut([*e1, *e2]) {
-                        Err(_) => continue,
-                        Ok(m) => m,
-                    };
-
-                // if they are from the same team, do nothing special
-                if team_a.id == team_b.id {
-                    continue;
-                }
-
-                // hurt each other
-                health_a.hit(1.);
-                health_b.hit(1.);
             }
             CollisionEvent::Stopped(_, _, _) => {}
         }
