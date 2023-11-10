@@ -11,3 +11,8 @@ release-windows:
 
 release-mac-m1:
 	@cross build --target=aarch64-apple-darwin --release
+
+release-wasm:
+	@cargo build --release --target wasm32-unknown-unknown
+	@wasm-bindgen --out-name wasm_game --out-dir target/web/release --target web target/wasm32-unknown-unknown/release/game.wasm
+	@cp web/* target/web/release/

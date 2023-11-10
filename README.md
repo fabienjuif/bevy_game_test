@@ -14,3 +14,7 @@ rustup target add x86_64-pc-windows-msvc
 ```
 
 - `make release-windows`
+
+### Wasm
+
+https://github.com/bevyengine/bevy/tree/main/examples#setup-2
