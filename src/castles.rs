@@ -49,7 +49,7 @@ impl CastleBundle {
                 minion_spawn_timer: Timer::from_seconds(3., TimerMode::Repeating),
                 minion_spawn_timer_q: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
-            health: Health::new(300.)
+            health: Health::new(1000.)
                 .with_health_bar_position(Vec3::new(0.0, 50.0, 0.0))
                 .with_health_bar_size(Vec2::new(size.x, 5.)),
             rewards: Rewards { gold: 500. },

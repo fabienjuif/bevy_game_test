@@ -59,7 +59,7 @@ impl RackBundle {
                 minion_spawn_timer: Timer::from_seconds(3., TimerMode::Repeating),
                 minion_spawn_timer_q: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
-            health: Health::new(80.)
+            health: Health::new(220.)
                 .with_health_bar_position(Vec3::new(0.0, 20.0, 0.0))
                 .with_health_bar_size(Vec2::new(size.x, 5.)),
             rewards: Rewards { gold: 100. },
@@ -100,6 +100,8 @@ fn spawn_minions(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(&mut Rack, &Collider, &Transform, &Team)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
 
@@ -134,6 +136,8 @@ fn spawn_minions(
                 }
 
                 commands.spawn(MinionBundle::new(
+                    &mut meshes,
+                    &mut materials,
                     Vec3::new(
                         transform.translation.x + offset_x,
                         transform.translation.y + offset_y,

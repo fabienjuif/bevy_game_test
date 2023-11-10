@@ -1,16 +1,17 @@
 use crate::{common::*, health::Health, teams::Team};
 use bevy::{
     prelude::*,
-    sprite::{Sprite, SpriteBundle},
+    sprite::MaterialMesh2dBundle,
     time::{Time, Timer},
     utils::{default, HashMap},
 };
 use bevy_rapier2d::prelude::*;
 
-const MINION_SCALE: f32 = 100.;
+const MINION_SCALE: f32 = 190.;
 const DESTROY_MINIONS_AFTER_SECS: f32 = 120.;
 const DECAY_VALUE_PER_SEC: f32 = 10.;
 const REWARDS_GOLD: f32 = 1.;
+const MINION_TOUCH_DAMAGE: f32 = 80.;
 
 pub struct MinionsPlugin;
 
@@ -32,7 +33,8 @@ impl Plugin for MinionsPlugin {
 #[derive(Bundle)]
 pub struct MinionBundle {
     minion: Minion,
-    sprite: SpriteBundle,
+    mesh: MaterialMesh2dBundle<ColorMaterial>,
+    // sprite: SpriteBundle,
     health: Health,
     rewards: Rewards,
     team: Team,
@@ -44,17 +46,29 @@ pub struct MinionBundle {
 }
 
 impl MinionBundle {
-    pub fn new(translation: Vec3, team: Team) -> Self {
+    pub fn new(
+        meshes: &mut ResMut<Assets<Mesh>>,
+        materials: &mut ResMut<Assets<ColorMaterial>>,
+        translation: Vec3,
+        team: Team,
+    ) -> Self {
         MinionBundle {
-            sprite: SpriteBundle {
-                sprite: Sprite {
-                    color: team.color,
-                    custom_size: Some(Vec2::new(10.0, 10.0)),
-                    ..default()
-                },
+            mesh: MaterialMesh2dBundle {
+                mesh: meshes.add(shape::Circle::new(6.).into()).into(),
+                material: materials.add(ColorMaterial::from(team.color)),
                 transform: Transform::from_translation(translation),
                 ..default()
             },
+            // TODO: add sprite sheet later
+            // sprite: SpriteBundle {
+            //     sprite: Sprite {
+            //         color: team.color,
+            //         custom_size: Some(Vec2::new(10.0, 10.0)),
+            //         ..default()
+            //     },
+            //     transform: Transform::from_translation(translation),
+            //     ..default()
+            // },
             minion: Minion {
                 // to avoid leaks
                 // maybe a better option on top of that is to leach health every seconds on minions and make them die!
@@ -70,7 +84,7 @@ impl MinionBundle {
             team,
             // physics
             body: RigidBody::Dynamic,
-            collider: Collider::cuboid(5.0, 5.),
+            collider: Collider::ball(6.),
             events: ActiveEvents::COLLISION_EVENTS,
         }
     }
@@ -187,8 +201,8 @@ fn check_collisions_minions(
                     }
 
                     // hurt each other (TODO: maybe they are hurting each other twice if the couple is twice in the events (a, b) and (b, a))
-                    health_a.hit(1.);
-                    health_b.hit(1.);
+                    health_a.hit(MINION_TOUCH_DAMAGE);
+                    health_b.hit(MINION_TOUCH_DAMAGE);
 
                     continue;
                 }
@@ -204,14 +218,14 @@ fn check_collisions_minions(
                             continue;
                         }
 
-                        health.hit(1.);
+                        health.hit(MINION_TOUCH_DAMAGE);
                     } else if let Ok((team, mut health)) = query_hit_entities.get_mut(*e2) {
                         // if they are from the same team, do nothing special
                         if minion_team.id == team.id {
                             continue;
                         }
 
-                        health.hit(1.);
+                        health.hit(MINION_TOUCH_DAMAGE);
                     }
                 }
             }

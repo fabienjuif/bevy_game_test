@@ -2,6 +2,7 @@ use crate::common::*;
 use crate::health::Health;
 use crate::racks::{RackBundle, RACK_GOLD_VALUE};
 use crate::teams::{Team, Teams};
+use bevy::sprite::MaterialMesh2dBundle;
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
@@ -86,24 +87,38 @@ impl Plugin for LocalPlayerPlugin {
     }
 }
 
-fn setup(mut commands: Commands, teams: Res<Teams>) {
+fn setup(
+    mut commands: Commands,
+    teams: Res<Teams>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     let mut sword_cooldown = Timer::from_seconds(0.3, TimerMode::Once);
     sword_cooldown.set_elapsed(sword_cooldown.duration());
 
+    let team = teams.get_expect("a".into());
+
     commands
         .spawn((
-            SpriteBundle {
-                sprite: Sprite {
-                    color: Color::rgb(0.25, 0.25, 0.75),
-                    custom_size: Some(Vec2::new(50.0, 50.0)),
-                    ..default()
-                },
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            MaterialMesh2dBundle {
+                mesh: meshes.add(shape::Circle::new(30.).into()).into(),
+                material: materials.add(ColorMaterial::from(team.color)),
+                transform: Transform::from_translation(Vec3::new(-150., 0., 0.)),
                 ..default()
             },
+            // TODO:: add sprite sheet later
+            // SpriteBundle {
+            //     sprite: Sprite {
+            //         color: Color::rgb(0.25, 0.25, 0.75),
+            //         custom_size: Some(Vec2::new(50.0, 50.0)),
+            //         ..default()
+            //     },
+            //     transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            //     ..default()
+            // },
             RigidBody::KinematicVelocityBased,
             // RigidBody::Dynamic,
-            Collider::cuboid(25.0, 25.),
+            Collider::ball(30.),
             ActiveEvents::COLLISION_EVENTS,
             LocalPlayer {},
             Player {
@@ -116,7 +131,7 @@ fn setup(mut commands: Commands, teams: Res<Teams>) {
                 .with_health_bar_position(Vec3::new(0.0, 40.0, 0.1))
                 .with_health_bar_size(Vec2::new(50.0, 5.0)),
             Name("local_player".to_string()),
-            teams.get_expect("a".into()),
+            team,
         ))
         .with_children(|parent| {
             parent.spawn((
