@@ -3,6 +3,7 @@ use crate::health::Health;
 use crate::racks::{RackBundle, RACK_GOLD_VALUE};
 use crate::teams::{Team, Teams};
 use bevy::sprite::MaterialMesh2dBundle;
+use bevy::window::PrimaryWindow;
 use bevy::{
     input::gamepad::GamepadButtonChangedEvent,
     prelude::*,
@@ -76,8 +77,15 @@ impl Plugin for LocalPlayerPlugin {
         app.add_systems(Startup, (setup, setup_ui)).add_systems(
             Update,
             (
+                // movements
                 update_axes,
+                keyboard_movements,
+                mouse_movements,
+                // actions
                 update_button_values,
+                mouse_actions,
+                keyboard_actions,
+                // others
                 check_collisions_sword,
                 update_ui,
                 update_sword,
@@ -225,6 +233,7 @@ fn update_button_values(
         if button_event.button_type == GamepadButtonType::South {
             for child in children {
                 if let Ok(mut sprite) = query.get_mut(*child) {
+                    // TODO: check how to send even in bevy to DRY on actions
                     if button_event.value != 0. {
                         if player.cooldowns.sword.finished() {
                             sprite.color = Color::rgb(0.25, 0.75, 0.25);
@@ -239,6 +248,7 @@ fn update_button_values(
             }
         }
 
+        // TODO: check how to send even in bevy to DRY on actions
         if button_event.button_type == GamepadButtonType::East
             && button_event.value != 0.
             && player.gold >= RACK_GOLD_VALUE
@@ -322,5 +332,91 @@ fn update_sword(
 fn update_cooldowns(time: Res<Time>, mut query_players: Query<&mut Player>) {
     for mut player in query_players.iter_mut() {
         player.cooldowns.sword.tick(time.delta());
+    }
+}
+
+fn keyboard_movements(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut query_player: Query<&mut Transform, With<LocalPlayer>>,
+    time: Res<Time>,
+) {
+    for mut transform in &mut query_player {
+        if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
+            transform.translation.x -= JOYSTICK_SCALE * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
+            transform.translation.x += JOYSTICK_SCALE * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
+            transform.translation.y -= JOYSTICK_SCALE * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
+            transform.translation.y += JOYSTICK_SCALE * time.delta_seconds();
+        }
+    }
+}
+
+fn mouse_movements(
+    primary_window: Query<&Window, With<PrimaryWindow>>,
+    mut query_player: Query<&mut Transform, With<LocalPlayer>>,
+    query_camera: Query<&Transform, (Without<LocalPlayer>, With<Camera>)>,
+) {
+    let Ok(window) = primary_window.get_single() else {
+        return;
+    };
+    let Ok(camera_transform) = query_camera.get_single() else {
+        return;
+    };
+
+    if let Some(cursor_position) = window.cursor_position() {
+        if let Ok(mut player_transform) = query_player.get_single_mut() {
+            let window_half_size = Vec2::new(window.width(), window.height()) / 2.;
+            let cursor_position = Vec2::new(
+                cursor_position.x - window_half_size.x + camera_transform.translation.x,
+                -cursor_position.y + window_half_size.y + camera_transform.translation.y,
+            );
+            let pos = player_transform.translation.truncate(); // player position
+
+            let direction = cursor_position - pos;
+            player_transform.rotation = Quat::from_rotation_z((-direction.x).atan2(direction.y));
+        }
+    }
+}
+
+fn mouse_actions(
+    mut commands: Commands,
+    buttons: Res<Input<MouseButton>>,
+    mut query_local_player: Query<(&mut Player, Entity, &Children), With<LocalPlayer>>,
+    mut query: Query<&mut Sprite, With<Hand>>,
+) {
+    let (mut player, entity, children) = query_local_player.single_mut();
+
+    for child in children {
+        if let Ok(mut sprite) = query.get_mut(*child) {
+            // TODO: check how to send even in bevy to DRY on actions
+            if buttons.just_pressed(MouseButton::Left) {
+                if player.cooldowns.sword.finished() {
+                    sprite.color = Color::rgb(0.25, 0.75, 0.25);
+                    let sword_entity = commands.spawn(SwordBundle::new(entity)).id();
+                    commands.entity(entity).add_child(sword_entity);
+                    player.cooldowns.sword.reset();
+                }
+            } else {
+                sprite.color = DEFAULT_HAND_COLOR;
+            }
+        }
+    }
+}
+
+fn keyboard_actions(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut commands: Commands,
+    mut query_local_player: Query<(&mut Player, &Transform, &Team), With<LocalPlayer>>,
+) {
+    let (mut player, transform, team) = query_local_player.single_mut();
+
+    if keyboard_input.just_pressed(KeyCode::E) && player.gold >= RACK_GOLD_VALUE {
+        commands.spawn(RackBundle::new(team.clone(), *transform));
+        player.gold -= RACK_GOLD_VALUE;
     }
 }
