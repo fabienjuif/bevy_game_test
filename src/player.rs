@@ -25,7 +25,7 @@ pub struct Player {
 }
 
 #[derive(Component)]
-struct LocalPlayer;
+pub struct LocalPlayer;
 
 #[derive(Component)]
 struct Hand;
