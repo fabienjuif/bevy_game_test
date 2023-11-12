@@ -1,5 +1,6 @@
 use crate::common::*;
 use crate::health::Health;
+use crate::physics::CollisionEvent;
 use crate::racks::{RackBundle, RACK_GOLD_VALUE};
 use crate::teams::{Team, Teams};
 use bevy::sprite::MaterialMesh2dBundle;
@@ -60,7 +61,7 @@ impl SwordBundle {
                 transform: Transform::from_xyz(0.0, 35.0, 10.0),
                 ..default()
             },
-            collider: Collider::cuboid(50.0, 25.),
+            collider: Collider::cuboid(49.0, 24.),
             sensor: Sensor,
             sword: Sword {
                 entity: parent_entity,
@@ -126,8 +127,7 @@ fn setup(
             // },
             RigidBody::KinematicVelocityBased,
             // RigidBody::Dynamic,
-            Collider::ball(30.),
-            ActiveEvents::COLLISION_EVENTS,
+            Collider::ball(28.),
             LocalPlayer {},
             Player {
                 gold: 20.,
@@ -272,7 +272,6 @@ fn update_ui(
 // maybe this is a bad idea to have a system per component since the collision event is having all contacts
 // it makes us loop inside collision events multiple time
 fn check_collisions_sword(
-    // mut commands: Commands,
     query_swords: Query<(Entity, &Sword)>,
     mut query_player: Query<(&mut Player, &Team)>,
     mut query_hit_entities: Query<(Option<&Rewards>, &Team, &mut Health)>,
@@ -280,7 +279,7 @@ fn check_collisions_sword(
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
-            CollisionEvent::Started(e1, e2, _) => {
+            CollisionEvent::Started(e1, e2) => {
                 let sword = query_swords
                     .get(*e1)
                     .ok()
@@ -312,7 +311,7 @@ fn check_collisions_sword(
                     }
                 }
             }
-            CollisionEvent::Stopped(_, _, _) => {}
+            CollisionEvent::Stopped(_, _) => {}
         }
     }
 }

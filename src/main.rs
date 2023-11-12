@@ -2,6 +2,7 @@ mod castles;
 mod common;
 mod health;
 mod minions;
+mod physics;
 mod player;
 mod racks;
 mod teams;
@@ -15,6 +16,7 @@ use bevy_rapier2d::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;
 use minions::MinionsPlugin;
+use physics::PhysicsPlugin;
 use player::{LocalPlayer, LocalPlayerPlugin};
 use racks::RacksPlugin;
 use teams::TeamsPlugin;
@@ -28,9 +30,10 @@ fn main() {
     app.add_plugins((
         DefaultPlugins.set(LogPlugin {
             level: Level::TRACE,
-            filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn"
+            filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn,game::health=info,game::racks=info"
                 .to_string(),
         }),
+        PhysicsPlugin,
         TeamsPlugin,
         MinionsPlugin,
         RacksPlugin,

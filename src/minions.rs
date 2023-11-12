@@ -1,4 +1,4 @@
-use crate::{common::*, health::Health, teams::Team};
+use crate::{common::*, health::Health, physics::CollisionEvent, teams::Team};
 use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
@@ -29,7 +29,12 @@ impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (update_move_minions, check_collisions_minions, decay_life),
+            (
+                update_move_minions,
+                check_collisions_minions,
+                decay_life,
+                explosion_damage,
+            ),
         )
         .add_systems(PostUpdate, (destroy_minions, destroy_after_timer));
     }
@@ -47,7 +52,6 @@ pub struct MinionBundle {
     // physics
     body: RigidBody,
     collider: Collider,
-    events: ActiveEvents,
     timer_destroyable: TimeDestroyable,
 }
 
@@ -58,9 +62,10 @@ impl MinionBundle {
         translation: Vec3,
         team: Team,
     ) -> Self {
+        let radius = 6.0;
         MinionBundle {
             mesh: MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(6.).into()).into(),
+                mesh: meshes.add(shape::Circle::new(radius).into()).into(),
                 material: materials.add(ColorMaterial::from(team.color)),
                 transform: Transform::from_translation(translation),
                 ..default()
@@ -85,8 +90,7 @@ impl MinionBundle {
             team,
             // physics
             body: RigidBody::Dynamic,
-            collider: Collider::ball(6.),
-            events: ActiveEvents::COLLISION_EVENTS,
+            collider: Collider::ball(radius * 0.98),
             timer_destroyable: TimeDestroyable {
                 timer: Timer::from_seconds(DESTROY_MINIONS_AFTER_SECS, bevy::time::TimerMode::Once),
             },
@@ -95,7 +99,9 @@ impl MinionBundle {
 }
 
 #[derive(Component)]
-struct Explosion;
+struct Explosion {
+    pub damage: f32,
+}
 
 #[derive(Bundle)]
 struct ExplosionBundle {
@@ -111,23 +117,26 @@ impl ExplosionBundle {
     pub fn new(
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<ColorMaterial>>,
-        translation: Vec3,
+        mut translation: Vec3,
         team: Team,
     ) -> Self {
+        let mut color = team.color;
+        color.set_a(0.4);
         let radius = 20.;
+        translation.z = 10.0;
         ExplosionBundle {
             mesh: MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(radius).into()).into(),
-                material: materials.add(ColorMaterial::from(team.color)),
+                material: materials.add(ColorMaterial::from(color)),
                 transform: Transform::from_translation(translation),
                 ..default()
             },
-            explosion: Explosion,
+            explosion: Explosion { damage: 30.0 },
             team,
-            collider: Collider::ball(radius),
+            collider: Collider::ball(radius * 0.98),
             sensor: Sensor,
             timer_destroyable: TimeDestroyable {
-                timer: Timer::from_seconds(0.5, bevy::time::TimerMode::Once),
+                timer: Timer::from_seconds(0.2, bevy::time::TimerMode::Once),
             },
         }
     }
@@ -225,10 +234,6 @@ fn destroy_after_timer(
     }
 }
 
-// maybe this is a bad idea to have a system per component since the collision event is having all contacts
-// it makes us loop inside collision events multiple time
-// TODO: We can have a more global system to handle that in one loop querying "atker" component (with a team),
-// TODO: and putting reward in the team rather than in the player, or we want to stick of having reward on each entity so when a entity die its reward are huge?
 // FIXME: With explosion implem, it can be simplify
 fn check_collisions_minions(
     mut commands: Commands,
@@ -241,7 +246,7 @@ fn check_collisions_minions(
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
-            CollisionEvent::Started(e1, e2, _) => {
+            CollisionEvent::Started(e1, e2) => {
                 // between minions
                 if query_minions.contains(*e1) && query_minions.contains(*e2) {
                     let [(transform_a, team_a, mut minion_a), (_, team_b, _)] =
@@ -306,7 +311,7 @@ fn check_collisions_minions(
 
                 minion.had_exploded = true;
             }
-            CollisionEvent::Stopped(_, _, _) => {}
+            CollisionEvent::Stopped(_, _) => {}
         }
     }
 }
@@ -314,5 +319,36 @@ fn check_collisions_minions(
 fn decay_life(time: Res<Time>, mut query_minions: Query<&mut Health, With<Minion>>) {
     for mut health in &mut query_minions {
         health.hit(DECAY_VALUE_PER_SEC * time.delta_seconds());
+    }
+}
+
+fn explosion_damage(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut query_hit_entities: Query<&mut Health, Without<Explosion>>,
+    query_explosions: Query<&Explosion>,
+) {
+    for collision_event in collision_events.iter() {
+        match collision_event {
+            CollisionEvent::Started(e1, e2) => {
+                let explosion = match query_explosions.get(*e1) {
+                    Err(_) => match query_explosions.get(*e2) {
+                        Err(_) => continue,
+                        Ok(value) => value,
+                    },
+                    Ok(value) => value,
+                };
+
+                let mut health = match query_hit_entities.get_mut(*e1) {
+                    Err(_) => match query_hit_entities.get_mut(*e2) {
+                        Err(_) => continue,
+                        Ok(value) => value,
+                    },
+                    Ok(value) => value,
+                };
+
+                health.hit(explosion.damage);
+            }
+            CollisionEvent::Stopped(_, _) => {}
+        }
     }
 }

@@ -54,7 +54,7 @@ impl CastleBundle {
                 .with_health_bar_size(Vec2::new(size.x, 5.)),
             rewards: Rewards { gold: 500. },
             rigid_body: RigidBody::Dynamic,
-            collider: Collider::cuboid(size.x / 2., size.y / 2.),
+            collider: Collider::cuboid((size.x / 2.) * 0.98, (size.y / 2.) * 0.98),
             events: ActiveEvents::COLLISION_EVENTS,
             mass: ColliderMassProperties::Mass(0.),
         }
