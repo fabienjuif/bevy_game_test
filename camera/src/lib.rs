@@ -1,13 +1,32 @@
-use bevy::prelude::{
-    App, Bundle, Camera2dBundle, Component, Entity, Plugin, PostUpdate, Query, Transform, With,
-    Without,
+use bevy::{
+    math::Vec2,
+    prelude::{
+        App, Bundle, Camera2dBundle, Component, Entity, Plugin, PostUpdate, Query, Transform, With,
+        Without,
+    },
 };
 
 #[derive(Component)]
 pub struct Target;
 
 #[derive(Component)]
-pub struct Camera(pub Entity);
+pub struct Camera {
+    target: Entity, // TODO: find a way to have multiple targets per camera, but also being able to have multi cameras (n-n)
+    offset: Vec2,
+}
+
+impl Camera {
+    pub fn new(target: Entity, offset: Vec2) -> Self {
+        Self { target, offset }
+    }
+
+    pub fn new_default(target: Entity) -> Self {
+        Self {
+            target,
+            offset: Vec2::new(100.0, 80.0),
+        }
+    }
+}
 
 #[derive(Bundle)]
 pub struct CameraBundle {
@@ -18,14 +37,14 @@ pub struct CameraBundle {
 impl CameraBundle {
     pub fn new(target: Entity, bundle: Camera2dBundle) -> Self {
         Self {
-            camera: Camera(target),
+            camera: Camera::new_default(target),
             bundle,
         }
     }
 
     pub fn new_with_default_bundle(target: Entity) -> Self {
         Self {
-            camera: Camera(target),
+            camera: Camera::new_default(target),
             bundle: Camera2dBundle::default(),
         }
     }
@@ -45,14 +64,21 @@ fn cameraman(
 ) {
     for (mut camera_transform, camera) in &mut query_camera {
         for (target_transform, target_entity) in &query_targets {
-            if camera.0 != target_entity {
+            if camera.target != target_entity {
                 continue;
             }
 
             // TODO: for now we follow the first target but we could think of doing an average positions of all the targets
-            if camera.0 == target_entity {
-                camera_transform.translation.x = target_transform.translation.x;
-                camera_transform.translation.y = target_transform.translation.y;
+            if camera.target == target_entity {
+                let diff = camera_transform.translation - target_transform.translation;
+                let diff = diff.abs();
+
+                if diff.x > camera.offset.x {
+                    camera_transform.translation.x = target_transform.translation.x;
+                }
+                if diff.y > camera.offset.y {
+                    camera_transform.translation.y = target_transform.translation.y;
+                }
 
                 break;
             }
