@@ -12,17 +12,15 @@ use bevy::{
     prelude::*,
     DefaultPlugins,
 };
+use bevy_camera::CameraPlugin;
 use bevy_rapier2d::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;
 use minions::MinionsPlugin;
 use physics::PhysicsPlugin;
-use player::{LocalPlayer, LocalPlayerPlugin};
+use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
 use teams::TeamsPlugin;
-
-#[derive(Component)]
-struct Camera;
 
 fn main() {
     let mut app = App::new();
@@ -40,6 +38,7 @@ fn main() {
         CastlesPlugin,
         HealthPlugin,
         LocalPlayerPlugin,
+        CameraPlugin,
     ))
     // --- physics ---
     .add_plugins((
@@ -51,25 +50,5 @@ fn main() {
         gravity: Vec2::new(0.0, 0.0),
         ..default()
     })
-    // --- systems ---
-    .add_systems(Startup, setup)
-    .add_systems(Update, cameraman)
     .run();
-}
-
-fn setup(mut commands: Commands) {
-    // Camera
-    commands.spawn((Camera2dBundle::default(), Camera {}));
-}
-
-fn cameraman(
-    mut query_camera: Query<&mut Transform, (With<Camera>, Without<LocalPlayer>)>,
-    query_player: Query<&Transform, With<LocalPlayer>>,
-) {
-    if let Ok(mut camera_transform) = query_camera.get_single_mut() {
-        if let Ok(player_transform) = query_player.get_single() {
-            camera_transform.translation.x = player_transform.translation.x;
-            camera_transform.translation.y = player_transform.translation.y;
-        }
-    }
 }

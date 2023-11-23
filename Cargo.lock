@@ -384,6 +384,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_camera"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_core"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1629,6 +1636,7 @@ name = "game"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_camera",
  "bevy_rapier2d",
  "rand",
 ]
