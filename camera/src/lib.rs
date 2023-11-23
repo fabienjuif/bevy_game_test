@@ -27,7 +27,7 @@ impl Camera {
     pub fn new_default(target: Entity) -> Self {
         Self {
             target,
-            dead_zone: Vec2::new(100.0, 80.0),
+            dead_zone: Vec2::new(30.0, 15.0),
         }
     }
 }

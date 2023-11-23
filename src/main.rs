@@ -12,7 +12,7 @@ use bevy::{
     prelude::*,
     DefaultPlugins,
 };
-use bevy_camera::{CameraDebugPlugin, CameraPlugin};
+use bevy_camera::CameraPlugin;
 use bevy_rapier2d::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;
@@ -42,7 +42,7 @@ fn main() {
     // --- camera ---
     .add_plugins((
         CameraPlugin,
-        CameraDebugPlugin,
+        // CameraDebugPlugin,
     ))
     // --- physics ---
     .add_plugins((

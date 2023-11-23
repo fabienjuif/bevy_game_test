@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{
     prelude::*,
     sprite::{Sprite, SpriteBundle},
@@ -41,6 +43,8 @@ pub struct RackBundle {
 impl RackBundle {
     pub fn new(team: Team, transform: Transform) -> Self {
         let size = Vec2::new(20.0, 20.0);
+        let mut minion_spawn_timer = Timer::from_seconds(1.5, TimerMode::Repeating);
+        minion_spawn_timer.set_elapsed(Duration::from_secs_f32(1.0));
         RackBundle {
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
@@ -56,7 +60,7 @@ impl RackBundle {
                 minion_spawning: false,
                 minion_spawned_count: 0,
                 minion_spawn_count: 5,
-                minion_spawn_timer: Timer::from_seconds(3., TimerMode::Repeating),
+                minion_spawn_timer,
                 minion_spawn_timer_q: Timer::from_seconds(0.2, TimerMode::Repeating),
             },
             health: Health::new(220.)
