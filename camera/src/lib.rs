@@ -71,13 +71,23 @@ fn cameraman(
             // TODO: for now we follow the first target but we could think of doing an average positions of all the targets
             if camera.target == target_entity {
                 let diff = camera_transform.translation - target_transform.translation;
-                let diff = diff.abs();
+                let diff_abs = diff.abs();
 
-                if diff.x > camera.offset.x {
-                    camera_transform.translation.x = target_transform.translation.x;
+                if diff_abs.x > camera.offset.x {
+                    camera_transform.translation.x = target_transform.translation.x
+                        - if diff.x > 0. {
+                            -camera.offset.x
+                        } else {
+                            camera.offset.x
+                        };
                 }
-                if diff.y > camera.offset.y {
-                    camera_transform.translation.y = target_transform.translation.y;
+                if diff_abs.y > camera.offset.y {
+                    camera_transform.translation.y = target_transform.translation.y
+                        - if diff.y > 0. {
+                            -camera.offset.y
+                        } else {
+                            camera.offset.y
+                        };
                 }
 
                 break;
