@@ -1,9 +1,13 @@
 use bevy::{
+    app::{PostStartup, Update},
+    ecs::system::ResMut,
+    gizmos::{gizmos::Gizmos, GizmoConfig},
     math::Vec2,
     prelude::{
         App, Bundle, Camera2dBundle, Component, Entity, Plugin, PostUpdate, Query, Transform, With,
         Without,
     },
+    render::color::Color,
 };
 
 #[derive(Component)]
@@ -54,7 +58,28 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostUpdate, cameraman);
+        app.add_systems(PostStartup, center)
+            .add_systems(PostUpdate, cameraman);
+    }
+}
+
+fn center(
+    mut query_camera: Query<(&mut Transform, &Camera), Without<Target>>,
+    query_targets: Query<(&Transform, Entity), With<Target>>,
+) {
+    for (mut camera_transform, camera) in &mut query_camera {
+        for (target_transform, target_entity) in &query_targets {
+            if camera.target != target_entity {
+                continue;
+            }
+
+            // TODO: for now we follow the first target but we could think of doing an average positions of all the targets
+            if camera.target == target_entity {
+                camera_transform.translation.x = target_transform.translation.x;
+                camera_transform.translation.y = target_transform.translation.y;
+                break;
+            }
+        }
     }
 }
 
@@ -93,5 +118,30 @@ fn cameraman(
                 break;
             }
         }
+    }
+}
+
+pub struct CameraDebugPlugin;
+
+impl Plugin for CameraDebugPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, debug);
+    }
+}
+
+fn debug(
+    mut gizmos: Gizmos,
+    mut config: ResMut<GizmoConfig>,
+    query_cameras: Query<(&Transform, &Camera)>,
+) {
+    config.line_width = 1.0;
+
+    for (camera_transform, camera) in &query_cameras {
+        gizmos.rect_2d(
+            camera_transform.translation.truncate(),
+            0.,
+            camera.offset * 2.0,
+            Color::RED,
+        );
     }
 }
