@@ -16,18 +16,18 @@ pub struct Target;
 #[derive(Component)]
 pub struct Camera {
     target: Entity, // TODO: find a way to have multiple targets per camera, but also being able to have multi cameras (n-n)
-    offset: Vec2,
+    dead_zone: Vec2,
 }
 
 impl Camera {
-    pub fn new(target: Entity, offset: Vec2) -> Self {
-        Self { target, offset }
+    pub fn new(target: Entity, dead_zone: Vec2) -> Self {
+        Self { target, dead_zone }
     }
 
     pub fn new_default(target: Entity) -> Self {
         Self {
             target,
-            offset: Vec2::new(100.0, 80.0),
+            dead_zone: Vec2::new(100.0, 80.0),
         }
     }
 }
@@ -98,20 +98,20 @@ fn cameraman(
                 let diff = camera_transform.translation - target_transform.translation;
                 let diff_abs = diff.abs();
 
-                if diff_abs.x > camera.offset.x {
+                if diff_abs.x > camera.dead_zone.x {
                     camera_transform.translation.x = target_transform.translation.x
                         - if diff.x > 0. {
-                            -camera.offset.x
+                            -camera.dead_zone.x
                         } else {
-                            camera.offset.x
+                            camera.dead_zone.x
                         };
                 }
-                if diff_abs.y > camera.offset.y {
+                if diff_abs.y > camera.dead_zone.y {
                     camera_transform.translation.y = target_transform.translation.y
                         - if diff.y > 0. {
-                            -camera.offset.y
+                            -camera.dead_zone.y
                         } else {
-                            camera.offset.y
+                            camera.dead_zone.y
                         };
                 }
 
@@ -140,7 +140,7 @@ fn debug(
         gizmos.rect_2d(
             camera_transform.translation.truncate(),
             0.,
-            camera.offset * 2.0,
+            camera.dead_zone * 2.0,
             Color::RED,
         );
     }
