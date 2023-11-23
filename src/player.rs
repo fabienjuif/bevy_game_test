@@ -11,6 +11,7 @@ use bevy::{
     sprite::{Sprite, SpriteBundle},
     time::Time,
 };
+use bevy_camera::{Camera, CameraBundle, Target};
 use bevy_rapier2d::prelude::*;
 
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
@@ -107,7 +108,7 @@ fn setup(
 
     let team = teams.get_expect("a".into());
 
-    commands
+    let entity = commands
         .spawn((
             MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(30.).into()).into(),
@@ -139,6 +140,7 @@ fn setup(
                 .with_health_bar_position(Vec3::new(0.0, 40.0, 0.1))
                 .with_health_bar_size(Vec2::new(50.0, 5.0)),
             Name("local_player".to_string()),
+            Target,
             team,
         ))
         .with_children(|parent| {
@@ -154,7 +156,10 @@ fn setup(
                 },
                 Hand {},
             ));
-        });
+        })
+        .id();
+
+    commands.spawn(CameraBundle::new_with_default_bundle(entity));
 }
 
 fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
