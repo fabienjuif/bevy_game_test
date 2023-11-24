@@ -7,8 +7,7 @@ use bevy::{
         system::{Commands, Res, ResMut},
     },
     gizmos::{gizmos::Gizmos, GizmoConfig},
-    log::{debug, warn},
-    math::{self, Vec2, Vec3},
+    math::{Vec2, Vec3},
     prelude::{
         default, App, Camera2dBundle, Entity, Plugin, PostUpdate, Query, Time, Timer, TimerMode,
         Transform, With, Without,

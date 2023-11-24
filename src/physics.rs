@@ -87,58 +87,58 @@ fn check_collisions(
     mut event_writer: EventWriter<CollisionEvent>,
     query: Query<Entity>,
 ) {
-    // let mut before = collisions.clone();
-    // let mut events = Vec::<CollisionEvent>::new();
+    let mut before = collisions.clone();
+    let mut events = Vec::<CollisionEvent>::new();
 
-    // // first pass detects intersections
-    // for (e1, e2, _) in rapier_context.intersection_pairs() {
-    //     if !query.contains(e1) || !query.contains(e2) {
-    //         // entity are removed from ECS
-    //         // so we are not spawning events for them
-    //         // they will be removed in last loop
-    //         continue;
-    //     }
+    // first pass detects intersections
+    for (e1, e2, _) in rapier_context.intersection_pairs() {
+        if !query.contains(e1) || !query.contains(e2) {
+            // entity are removed from ECS
+            // so we are not spawning events for them
+            // they will be removed in last loop
+            continue;
+        }
 
-    //     let pair = EntityPair::new(e1, e2);
-    //     before.remove(&pair);
-    //     if collisions.contains(&pair) {
-    //         // we already have a started event for this intersection
-    //         continue;
-    //     }
+        let pair = EntityPair::new(e1, e2);
+        before.remove(&pair);
+        if collisions.contains(&pair) {
+            // we already have a started event for this intersection
+            continue;
+        }
 
-    //     collisions.add(pair);
-    //     events.push(CollisionEvent::Started(pair.entity1, pair.entity2));
-    // }
+        collisions.add(pair);
+        events.push(CollisionEvent::Started(pair.entity1, pair.entity2));
+    }
 
-    // // second pass detects contacts
-    // for c in rapier_context.contact_pairs() {
-    //     let e1 = c.collider1();
-    //     let e2 = c.collider2();
+    // second pass detects contacts
+    for c in rapier_context.contact_pairs() {
+        let e1 = c.collider1();
+        let e2 = c.collider2();
 
-    //     if !query.contains(e1) || !query.contains(e2) {
-    //         // entity are removed from ECS
-    //         // so we are not spawning events for them
-    //         // they will be removed in last loop
-    //         continue;
-    //     }
+        if !query.contains(e1) || !query.contains(e2) {
+            // entity are removed from ECS
+            // so we are not spawning events for them
+            // they will be removed in last loop
+            continue;
+        }
 
-    //     let pair = EntityPair::new(e1, e2);
-    //     before.remove(&pair);
-    //     if collisions.contains(&pair) {
-    //         // we already have a started event for this intersection
-    //         continue;
-    //     }
+        let pair = EntityPair::new(e1, e2);
+        before.remove(&pair);
+        if collisions.contains(&pair) {
+            // we already have a started event for this intersection
+            continue;
+        }
 
-    //     collisions.add(pair);
-    //     events.push(CollisionEvent::Started(e1, e2));
-    // }
+        collisions.add(pair);
+        events.push(CollisionEvent::Started(e1, e2));
+    }
 
-    // // emit ended collisions
-    // // TODO: implement iter() that return an iterator on the collisions struct
-    // for (pair, _) in before.pairs {
-    //     collisions.remove(&pair);
-    //     events.push(CollisionEvent::Stopped(pair.entity1, pair.entity2));
-    // }
+    // emit ended collisions
+    // TODO: implement iter() that return an iterator on the collisions struct
+    for (pair, _) in before.pairs {
+        collisions.remove(&pair);
+        events.push(CollisionEvent::Stopped(pair.entity1, pair.entity2));
+    }
 
-    // event_writer.send_batch(events);
+    event_writer.send_batch(events);
 }
