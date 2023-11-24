@@ -159,7 +159,10 @@ fn setup(
         })
         .id();
 
-    commands.spawn(CameraBundle::new_with_default_bundle(entity));
+    commands.spawn(CameraBundle::new(
+        Camera::new(entity, Vec2::new(50.0, 20.0), Vec3::ONE * 0.8),
+        Camera2dBundle::default(),
+    ));
 }
 
 fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
