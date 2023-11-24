@@ -30,15 +30,17 @@ pub struct Camera {
     // look at this position, this is the player + velocity + factor
     // it allow us to place the camera a bit ahead of time
     look_at: Vec3,
+    ahead_factor: Vec3,
 }
 
 impl Camera {
-    pub fn new(target: Entity, dead_zone: Vec2) -> Self {
+    pub fn new(target: Entity, dead_zone: Vec2, ahead_factor: Vec3) -> Self {
         Self {
             target,
             dead_zone,
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
+            ahead_factor,
         }
     }
 
@@ -48,6 +50,7 @@ impl Camera {
             dead_zone: Vec2::new(30.0, 15.0),
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
+            ahead_factor: Vec3::ONE,
         }
     }
 }
@@ -59,11 +62,8 @@ pub struct CameraBundle {
 }
 
 impl CameraBundle {
-    pub fn new(target: Entity, bundle: Camera2dBundle) -> Self {
-        Self {
-            camera: Camera::new_default(target),
-            bundle,
-        }
+    pub fn new(camera: Camera, bundle: Camera2dBundle) -> Self {
+        Self { camera, bundle }
     }
 
     pub fn new_with_default_bundle(target: Entity) -> Self {
@@ -119,34 +119,39 @@ fn cameraman(
             // process velocity
             let target_velocity = (target_transform.translation - camera.target_prev_translation)
                 / time.delta().as_secs_f32();
-            camera.look_at = target_transform.translation + target_velocity;
+            camera.look_at = target_transform.translation + (target_velocity * camera.ahead_factor);
+            // FIXME: SHOULD NOT BE HERE THIS IS FOR TESTING PURPOSE
+            if (target_transform.translation - camera.target_prev_translation) != Vec3::ZERO {
+                camera_transform.translation.x = camera.look_at.x;
+                camera_transform.translation.y = camera.look_at.y;
+            }
             camera.target_prev_translation = target_transform.translation;
-            // TODO: DO SOMETHING ABOUT IT
 
             // TODO: for now we follow the first target but we could think of doing an average positions of all the targets
-            if camera.target == target_entity {
-                let diff = camera_transform.translation - target_transform.translation;
-                let diff_abs = diff.abs();
+            // FIXME: put back dead zone
+            // if camera.target == target_entity {
+            //     let diff = camera_transform.translation - target_transform.translation;
+            //     let diff_abs = diff.abs();
 
-                if diff_abs.x > camera.dead_zone.x {
-                    camera_transform.translation.x = target_transform.translation.x
-                        - if diff.x > 0. {
-                            -camera.dead_zone.x
-                        } else {
-                            camera.dead_zone.x
-                        };
-                }
-                if diff_abs.y > camera.dead_zone.y {
-                    camera_transform.translation.y = target_transform.translation.y
-                        - if diff.y > 0. {
-                            -camera.dead_zone.y
-                        } else {
-                            camera.dead_zone.y
-                        };
-                }
+            //     if diff_abs.x > camera.dead_zone.x {
+            //         camera_transform.translation.x = target_transform.translation.x
+            //             - if diff.x > 0. {
+            //                 -camera.dead_zone.x
+            //             } else {
+            //                 camera.dead_zone.x
+            //             };
+            //     }
+            //     if diff_abs.y > camera.dead_zone.y {
+            //         camera_transform.translation.y = target_transform.translation.y
+            //             - if diff.y > 0. {
+            //                 -camera.dead_zone.y
+            //             } else {
+            //                 camera.dead_zone.y
+            //             };
+            //     }
 
-                break;
-            }
+            //     break;
+            // }
         }
     }
 }
