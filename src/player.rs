@@ -160,7 +160,7 @@ fn setup(
         .id();
 
     commands.spawn(CameraBundle::new(
-        Camera::new(entity, Vec2::new(50.0, 20.0), Vec3::ONE * 0.66),
+        Camera::new(entity, Vec2::new(50.0, 20.0), Vec3::ONE * 0.8),
         Camera2dBundle::default(),
     ));
 }

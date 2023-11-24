@@ -31,6 +31,7 @@ pub struct Camera {
     // it allow us to place the camera a bit ahead of time
     look_at: Vec3,
     ahead_factor: Vec3,
+    moving: bool,
 }
 
 impl Camera {
@@ -41,6 +42,7 @@ impl Camera {
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
             ahead_factor,
+            moving: false,
         }
     }
 
@@ -51,6 +53,7 @@ impl Camera {
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
             ahead_factor: Vec3::ONE,
+            moving: false,
         }
     }
 }
@@ -117,41 +120,28 @@ fn cameraman(
             }
 
             // process velocity
-            let target_velocity = (target_transform.translation - camera.target_prev_translation)
-                / time.delta().as_secs_f32();
-            camera.look_at = target_transform.translation + (target_velocity * camera.ahead_factor);
-            // FIXME: SHOULD NOT BE HERE THIS IS FOR TESTING PURPOSE
-            if (target_transform.translation - camera.target_prev_translation) != Vec3::ZERO {
-                camera_transform.translation.x = camera.look_at.x;
-                camera_transform.translation.y = camera.look_at.y;
+            let mut target_velocity = target_transform.translation - camera.target_prev_translation;
+            if target_velocity != Vec3::ZERO {
+                target_velocity /= time.delta_seconds()
             }
+            camera.look_at = target_transform.translation + (target_velocity * camera.ahead_factor);
             camera.target_prev_translation = target_transform.translation;
 
-            // TODO: for now we follow the first target but we could think of doing an average positions of all the targets
-            // FIXME: put back dead zone
-            // if camera.target == target_entity {
-            //     let diff = camera_transform.translation - target_transform.translation;
-            //     let diff_abs = diff.abs();
+            // if the target is in the dead zone, do nothing on camera
+            let diff = camera_transform.translation - target_transform.translation;
+            let diff_abs = diff.abs();
+            if !camera.moving
+                && diff_abs.x <= camera.dead_zone.x
+                && diff_abs.y <= camera.dead_zone.y
+            {
+                break;
+            }
 
-            //     if diff_abs.x > camera.dead_zone.x {
-            //         camera_transform.translation.x = target_transform.translation.x
-            //             - if diff.x > 0. {
-            //                 -camera.dead_zone.x
-            //             } else {
-            //                 camera.dead_zone.x
-            //             };
-            //     }
-            //     if diff_abs.y > camera.dead_zone.y {
-            //         camera_transform.translation.y = target_transform.translation.y
-            //             - if diff.y > 0. {
-            //                 -camera.dead_zone.y
-            //             } else {
-            //                 camera.dead_zone.y
-            //             };
-            //     }
-
-            //     break;
-            // }
+            // moving camera
+            camera.moving = target_velocity != Vec3::ZERO;
+            let next_pos = (camera.look_at - camera_transform.translation) * 0.02;
+            camera_transform.translation.x += next_pos.x;
+            camera_transform.translation.y += next_pos.y;
         }
     }
 }
