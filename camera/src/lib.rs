@@ -7,16 +7,17 @@ use bevy::{
         system::{Commands, Res, ResMut},
     },
     gizmos::{gizmos::Gizmos, GizmoConfig},
-    math::{Vec2, Vec3},
+    log::{debug, warn},
+    math::{self, Vec2, Vec3},
     prelude::{
-        default, App, Camera2dBundle, Entity, Plugin, PostUpdate, Query, Transform, With, Without,
+        default, App, Camera2dBundle, Entity, Plugin, PostUpdate, Query, Time, Timer, TimerMode,
+        Transform, With, Without,
     },
     render::{
         color::Color,
         mesh::{shape, Mesh},
     },
     sprite::{ColorMaterial, MaterialMesh2dBundle},
-    time::Time,
 };
 
 #[derive(Component)]
@@ -31,7 +32,8 @@ pub struct Camera {
     // it allow us to place the camera a bit ahead of time
     look_at: Vec3,
     ahead_factor: Vec3,
-    moving: bool,
+    traveling: bool,
+    center_after: Timer,
 }
 
 impl Camera {
@@ -42,7 +44,8 @@ impl Camera {
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
             ahead_factor,
-            moving: false,
+            traveling: false,
+            center_after: Timer::from_seconds(0.4, TimerMode::Once),
         }
     }
 
@@ -53,7 +56,8 @@ impl Camera {
             target_prev_translation: Vec3::ZERO,
             look_at: Vec3::ZERO,
             ahead_factor: Vec3::ONE,
-            moving: false,
+            traveling: false,
+            center_after: Timer::from_seconds(0.4, TimerMode::Once),
         }
     }
 }
@@ -119,29 +123,48 @@ fn cameraman(
                 continue;
             }
 
-            // process velocity
+            // process target velocity
             let mut target_velocity = target_transform.translation - camera.target_prev_translation;
-            if target_velocity != Vec3::ZERO {
-                target_velocity /= time.delta_seconds()
+            let target_moving = target_velocity != Vec3::ZERO;
+            if target_moving {
+                target_velocity /= time.delta_seconds();
             }
             camera.look_at = target_transform.translation + (target_velocity * camera.ahead_factor);
             camera.target_prev_translation = target_transform.translation;
 
-            // if the target is in the dead zone, do nothing on camera
-            let diff = camera_transform.translation - target_transform.translation;
-            let diff_abs = diff.abs();
-            if !camera.moving
-                && diff_abs.x <= camera.dead_zone.x
-                && diff_abs.y <= camera.dead_zone.y
-            {
-                break;
+            // process dead zone
+            let diff_pos_abs = (target_transform.translation - camera_transform.translation)
+                .truncate()
+                .abs();
+            let dead_zone =
+                diff_pos_abs.x <= camera.dead_zone.x && diff_pos_abs.y <= camera.dead_zone.y;
+            let centered = diff_pos_abs.x < 3.0 && diff_pos_abs.y < 3.0;
+
+            // center after some time in the dead zone
+            if dead_zone && !centered && !target_moving && !camera.traveling {
+                camera.center_after.tick(time.delta());
+            } else {
+                camera.center_after.reset();
             }
 
-            // moving camera
-            camera.moving = target_velocity != Vec3::ZERO;
-            let next_pos = (camera.look_at - camera_transform.translation) * 0.02;
-            camera_transform.translation.x += next_pos.x;
-            camera_transform.translation.y += next_pos.y;
+            // triggers travelling if we are out of dead zone
+            if !dead_zone {
+                camera.traveling = true;
+            }
+
+            // once the camera is moving we keep moving until we reach the center
+            if camera.traveling || camera.center_after.finished() {
+                let next_pos = camera.look_at - camera_transform.translation;
+                camera_transform.translation.x += next_pos.x * 0.02;
+                camera_transform.translation.y += next_pos.y * 0.02;
+
+                // we arrived
+                if centered && !target_moving {
+                    camera.traveling = false;
+                }
+            }
+
+            // if the target is in the dead zone, do nothing on camera
         }
     }
 }

@@ -42,7 +42,7 @@ fn main() {
     // --- camera ---
     .add_plugins((
         CameraPlugin,
-        CameraDebugPlugin,
+        // CameraDebugPlugin,
     ))
     // --- physics ---
     .add_plugins((
