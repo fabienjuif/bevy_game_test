@@ -244,7 +244,7 @@ fn check_collisions_minions(
     mut query_minions: Query<(&Transform, &Team, &mut Minion), With<Minion>>,
     query_hit_entities: Query<&Team, Without<Minion>>,
 ) {
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         match collision_event {
             CollisionEvent::Started(e1, e2) => {
                 // between minions
@@ -327,7 +327,7 @@ fn explosion_damage(
     mut query_hit_entities: Query<&mut Health, Without<Explosion>>,
     query_explosions: Query<&Explosion>,
 ) {
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         match collision_event {
             CollisionEvent::Started(e1, e2) => {
                 let explosion = match query_explosions.get(*e1) {

@@ -8,10 +8,11 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-bevy = "0.11.3"
-bevy_rapier2d = "0.22.0"
+bevy = "0.12.0"
+bevy_rapier2d = "0.23.0"
 rand = "0.8.5"
 bevy_camera = { path = "camera" }
+blake3 = { version = "1.5", features=["pure"] }
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

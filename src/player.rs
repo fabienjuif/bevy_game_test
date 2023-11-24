@@ -236,7 +236,7 @@ fn update_button_values(
     >,
     mut query: Query<&mut Sprite, With<Hand>>,
 ) {
-    for button_event in events.iter() {
+    for button_event in events.read() {
         let (mut player, transform, team, entity, children) = query_local_player.single_mut();
         if button_event.button_type == GamepadButtonType::South {
             for child in children {
@@ -285,7 +285,7 @@ fn check_collisions_sword(
     mut query_hit_entities: Query<(Option<&Rewards>, &Team, &mut Health)>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         match collision_event {
             CollisionEvent::Started(e1, e2) => {
                 let sword = query_swords
