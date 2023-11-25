@@ -14,6 +14,7 @@ use bevy::{
 };
 use bevy_camera::CameraPlugin;
 use bevy_rapier2d::prelude::*;
+use bevy_turborand::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;
 use minions::MinionsPlugin;
@@ -22,8 +23,11 @@ use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
 use teams::TeamsPlugin;
 
+use fasthash::xx;
+
 fn main() {
     let mut app = App::new();
+    let seed = "12U8x";
 
     app.add_plugins((
         DefaultPlugins.set(LogPlugin {
@@ -31,6 +35,7 @@ fn main() {
             filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn,game::health=info,game::racks=info"
                 .to_string(),
         }),
+        RngPlugin::new().with_rng_seed(xx::hash64(seed)),
         PhysicsPlugin,
         TeamsPlugin,
         MinionsPlugin,

@@ -13,6 +13,8 @@ bevy_rapier2d = "0.23.0"
 rand = "0.8.5"
 bevy_camera = { path = "camera" }
 blake3 = { version = "1.5", features=["pure"] }
+bevy_turborand = "0.7.0"
+fasthash = "0.4.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
