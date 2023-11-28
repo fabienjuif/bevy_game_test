@@ -2,13 +2,13 @@ use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Resource)]
 pub struct Teams {
-    teams: HashMap<String, Team>,
+    pub map: HashMap<String, Team>,
 }
 
 impl Teams {
     pub fn new() -> Self {
         let mut teams = Teams {
-            teams: HashMap::new(),
+            map: HashMap::new(),
         };
 
         teams.add(Team {
@@ -27,7 +27,7 @@ impl Teams {
     }
 
     pub fn get(&self, id: String) -> Option<&Team> {
-        self.teams.get(&id)
+        self.map.get(&id)
     }
 
     pub fn get_expect(&self, id: String) -> Team {
@@ -35,7 +35,7 @@ impl Teams {
     }
 
     pub fn add(&mut self, team: Team) -> &mut Self {
-        self.teams.insert(team.id.clone(), team);
+        self.map.insert(team.id.clone(), team);
         self
     }
 }

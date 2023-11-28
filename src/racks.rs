@@ -6,6 +6,7 @@ use bevy::{
     time::{Time, Timer, TimerMode},
 };
 use bevy_rapier2d::prelude::*;
+use bevy_turborand::prelude::*;
 
 use crate::{
     common::Rewards,
@@ -85,19 +86,29 @@ impl Plugin for RacksPlugin {
     }
 }
 
-fn setup(mut commands: Commands, teams: Res<Teams>) {
-    commands.spawn(RackBundle::new(
-        teams.get_expect("b".into()),
-        Transform::from_xyz(200.0, 200.0, 0.),
-    ));
-    commands.spawn(RackBundle::new(
-        teams.get_expect("b".into()),
-        Transform::from_xyz(250.0, 150.0, 0.),
-    ));
-    commands.spawn(RackBundle::new(
-        teams.get_expect("c".into()),
-        Transform::from_xyz(100.0, -100.0, 0.),
-    ));
+fn setup(mut commands: Commands, teams: Res<Teams>, mut rand: ResMut<GlobalRng>) {
+    let rand_count = rand.get_mut().fork();
+    let mut keys: Vec<&String> = teams.map.keys().into_iter().collect();
+    keys.sort();
+
+    for id in keys {
+        let Some(t) = teams.get(id.into()) else {
+            continue;
+        };
+
+        let count = rand_count.u32(2..5);
+        let rand_pos = rand_count.fork();
+        for _ in 0..count {
+            commands.spawn(RackBundle::new(
+                t.clone(),
+                Transform::from_xyz(
+                    rand_pos.f32_normalized() * 500.,
+                    rand_pos.f32_normalized() * 300.,
+                    0.,
+                ),
+            ));
+        }
+    }
 }
 
 fn spawn_minions(

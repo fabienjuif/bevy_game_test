@@ -27,7 +27,7 @@ use fasthash::xx;
 
 fn main() {
     let mut app = App::new();
-    let seed = "12U8x";
+    let seed = "13U2x";
 
     app.add_plugins((
         DefaultPlugins.set(LogPlugin {
