@@ -12,7 +12,7 @@ use bevy::{
     prelude::*,
     DefaultPlugins,
 };
-use bevy_camera::CameraPlugin;
+use bevy_cameraman::CameraPlugin;
 use bevy_rapier2d::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;

@@ -11,7 +11,7 @@ use bevy::{
     sprite::{Sprite, SpriteBundle},
     time::Time,
 };
-use bevy_camera::{Camera, CameraBundle, Target};
+use bevy_cameraman::{CameraBundle, Cameraman, Target};
 use bevy_rapier2d::prelude::*;
 
 const DEFAULT_HAND_COLOR: Color = Color::rgb(0.8, 0.25, 0.24);
@@ -160,7 +160,7 @@ fn setup(
         .id();
 
     commands.spawn(CameraBundle::new(
-        Camera::new(entity, Vec2::new(50.0, 20.0), Vec3::ONE * 0.8),
+        Cameraman::new(entity, Vec2::new(50.0, 20.0), Vec3::ONE * 0.8),
         Camera2dBundle::default(),
     ));
 }
