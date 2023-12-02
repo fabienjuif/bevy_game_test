@@ -40,20 +40,17 @@ jobs:
           cargo install -f wasm-bindgen-cli
       - name: Build wasm version
         run: make release-wasm
-      - name: Create artifact
-        run: |
-          tar \
-            --dereference --hard-dereference \
-            -cvf "$RUNNER_TEMP/artifact.tar" \
-            --exclude=.git \
-            --exclude=.github \
-            target/web/release
+      # - name: Create artifact
+      #   run: |
+      #     tar \
+      #       --dereference --hard-dereference \
+      #       -cvf "$RUNNER_TEMP/artifact.tar" \
+      #       --exclude=.git \
+      #       --exclude=.github \
+      #       target/web/release
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          name: github-pages
-          path: ${{ runner.temp }}/artifact.tar
-          retention-days: 1
-          if-no-files-found: error
+          path: target/web/release
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v2
