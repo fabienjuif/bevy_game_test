@@ -88,7 +88,7 @@ impl Plugin for RacksPlugin {
 
 fn setup(mut commands: Commands, teams: Res<Teams>, mut rand: ResMut<GlobalRng>) {
     let rand_count = rand.get_mut().fork();
-    let mut keys: Vec<&String> = teams.map.keys().into_iter().collect();
+    let mut keys: Vec<&String> = teams.map.keys().collect();
     keys.sort();
 
     for id in keys {
