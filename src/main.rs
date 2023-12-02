@@ -22,12 +22,11 @@ use physics::PhysicsPlugin;
 use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
 use teams::TeamsPlugin;
-
-use fasthash::xx;
+use xxhash_rust::xxh3::xxh3_64;
 
 fn main() {
     let mut app = App::new();
-    let seed = "13U2x";
+    let seed = b"13U2x";
 
     app.add_plugins((
         DefaultPlugins.set(LogPlugin {
@@ -35,7 +34,7 @@ fn main() {
             filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn,game::health=info,game::racks=info"
                 .to_string(),
         }),
-        RngPlugin::new().with_rng_seed(xx::hash64(seed)),
+        RngPlugin::new().with_rng_seed(xxh3_64(seed)),
         PhysicsPlugin,
         TeamsPlugin,
         MinionsPlugin,
