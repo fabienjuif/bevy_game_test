@@ -2,22 +2,20 @@
 name = "game"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Experimenting with Bevy and testing various features (Rust)"
+license = "MIT"
 
 [workspace]
 
 [dependencies]
-bevy = "0.12.0"
-bevy_rapier2d = "0.23.0"
-rand = "0.8.5"
-blake3 = { version = "1.5", features=["pure"] }
-bevy_cameraman = "0.1.0"
+bevy = "0.12.0" # Bevy is a game engine for Rust
+bevy_rapier2d = "0.23.0" # Physics integration for Bevy using Rapier 2D
+rand = "0.8.5" # Random number generation
+blake3 = { version = "1.5", features=["pure"] } # Hash function for performance and security
+bevy_cameraman = "0.1.0" # A camera control plugin for Bevy
 
-# Enable a small amount of optimization in debug mode
 [profile.dev]
-opt-level = 1
+opt-level = 1 # Fast compilation
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
-opt-level = 3
+opt-level = 3 # Maximum performance for dependencies
