@@ -34,7 +34,10 @@ jobs:
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
       - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+          cargo install -f wasm-bindgen-cli
       - name: Build wasm version
         run: make release-wasm
       - name: Create artifact
