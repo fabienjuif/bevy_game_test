@@ -1,9 +1,9 @@
 name: Deploy
 on:
   push:
-    # branches: ["main"]
+    branches: ["main"]
   pull_request:
-    # branches: ["main"]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -40,14 +40,6 @@ jobs:
           cargo install -f wasm-bindgen-cli
       - name: Build wasm version
         run: make release-wasm
-      # - name: Create artifact
-      #   run: |
-      #     tar \
-      #       --dereference --hard-dereference \
-      #       -cvf "$RUNNER_TEMP/artifact.tar" \
-      #       --exclude=.git \
-      #       --exclude=.github \
-      #       target/web/release
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
