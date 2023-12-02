@@ -1,3 +1,7 @@
+# bevy_game_test
+
+> Playing with bevy and testing stuff, do not expect code to be clean and reusable, etc
+
 https://bevy-cheatbook.github.io/input/gamepad.html
 
 windows from linux: https://bevy-cheatbook.github.io/setup/cross/linux-windows.html#microsoft-windows-sdks
