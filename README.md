@@ -1,6 +1,6 @@
 # bevy_game_test
 
-> Playing with bevy and testing stuff, do not expect code to be clean and reusable, etc
+> Experimenting with Bevy and testing various features. Do not expect the code to be clean and reusable, etc.
 
 ## What's the target?
 
