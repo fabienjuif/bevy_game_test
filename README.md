@@ -2,28 +2,27 @@
 
 > Playing with bevy and testing stuff, do not expect code to be clean and reusable, etc
 
-## What's the target
+## What's the target?
 
-I want to try every part of building a game with bevy, without having a clear goal for the game in mind.
-What I want to try/have, for possible future game are:
+I aim to explore every aspect of building a game with Bevy without having a specific game goal in mind. The features I want to experiment with or include for potential future games are:
 
-- [x] Good enough camera (see [bevy-cameraman](https://github.com/fabienjuif/bevy_cameraman))
-- [x] Physics / collisions
-- [ ] Good player controll / kinematic
-- [ ] Particles
-- [ ] Eventually some network
-- [x] Seeded RNG
-- [ ] Basic UI
-- [ ] Menus
-- [ ] Being able to work on divers system
+- [x] Implement a satisfactory camera (refer to [bevy-cameraman](https://github.com/fabienjuif/bevy_cameraman))
+- [x] Integrate physics/collision mechanics
+- [ ] Develop responsive player control/kinematics
+- [ ] Incorporate particle systems
+- [ ] Explore networking capabilities
+- [x] Implement a seeded random number generator (RNG)
+- [ ] Design basic user interface (UI)
+- [ ] Create menus
+- [ ] Ensure compatibility across various systems
   - [ ] GNU/Linux
   - [ ] MacOS (ARM)
   - [ ] Windows
-  - [ ] Wasm
+  - [ ] WebAssembly (Wasm)
   - [ ] Android
   - [ ] iOS
 
-After this is done, the project can be considered done, and it could be seen as an example bank.
+Upon completing these tasks, the project will be considered finished and can serve as a comprehensive example repository.
 
 ## Notes
 
