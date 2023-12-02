@@ -37,14 +37,14 @@ jobs:
       - name: Build wasm version
         run: make release-wasm
       - name: Create artifact
-      run: |
-        tar \
-          --dereference --hard-dereference \
-          --directory "$INPUT_PATH" \
-          -cvf "$RUNNER_TEMP/artifact.tar" \
-          --exclude=.git \
-          --exclude=.github \
-          target/web/release
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory "$INPUT_PATH" \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            target/web/release
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
