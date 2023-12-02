@@ -13,7 +13,7 @@ bevy_rapier2d = "0.23.0" # Physics integration for Bevy using Rapier 2D
 rand = "0.8.5" # Random number generation
 blake3 = { version = "1.5", features=["pure"] } # Hash function for performance and security
 bevy_turborand = "0.7.0" # Turbocharged random number generation for Bevy
-fasthash = "0.4.0" # Fast hashing algorithm
+xxhash-rust = { version = "0.8.7", features=["xxh3"] } # xxHash algorithm (to provide a seed)
 bevy_cameraman = "0.1.0" # A camera control plugin for Bevy
 
 [profile.dev]
