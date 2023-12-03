@@ -111,12 +111,14 @@ struct ExplosionBundle {
     sensor: Sensor,
     collider: Collider,
     timer_destroyable: TimeDestroyable,
+    audio: AudioBundle,
 }
 
 impl ExplosionBundle {
     pub fn new(
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<ColorMaterial>>,
+        asset_server: &Res<AssetServer>,
         mut translation: Vec3,
         team: Team,
     ) -> Self {
@@ -137,6 +139,10 @@ impl ExplosionBundle {
             sensor: Sensor,
             timer_destroyable: TimeDestroyable {
                 timer: Timer::from_seconds(0.2, bevy::time::TimerMode::Once),
+            },
+            audio: AudioBundle {
+                source: asset_server.load("sounds/explosion.ogg"),
+                settings: PlaybackSettings::ONCE.with_spatial(true),
             },
         }
     }
@@ -239,6 +245,7 @@ fn check_collisions_minions(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
     mut collision_events: EventReader<CollisionEvent>,
     // queries
     mut query_minions: Query<(&Transform, &Team, &mut Minion), With<Minion>>,
@@ -268,6 +275,7 @@ fn check_collisions_minions(
                     commands.spawn(ExplosionBundle::new(
                         &mut meshes,
                         &mut materials,
+                        &asset_server,
                         transform_a.translation,
                         team_a.clone(),
                     ));
@@ -305,6 +313,7 @@ fn check_collisions_minions(
                 commands.spawn(ExplosionBundle::new(
                     &mut meshes,
                     &mut materials,
+                    &asset_server,
                     minion_transform.translation,
                     minion_team.clone(),
                 ));
