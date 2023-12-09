@@ -12,6 +12,8 @@ const DESTROY_MINIONS_AFTER_SECS: f32 = 120.;
 const DECAY_VALUE_PER_SEC: f32 = 10.;
 const REWARDS_GOLD: f32 = 1.;
 
+const EXPLOSION_AUDIO_ID: &str = "sounds/explosion.ogg";
+
 pub struct MinionsPlugin;
 
 // TODO: move this into common
@@ -25,19 +27,28 @@ struct Minion {
     had_exploded: bool,
 }
 
+#[derive(Resource)]
+struct AudioExplosion(Handle<AudioSource>);
+
 impl Plugin for MinionsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                update_move_minions,
-                check_collisions_minions,
-                decay_life,
-                explosion_damage,
-            ),
-        )
-        .add_systems(PostUpdate, (destroy_minions, destroy_after_timer));
+        app.add_systems(Startup, setup_audio)
+            .add_systems(
+                Update,
+                (
+                    update_move_minions,
+                    check_collisions_minions,
+                    decay_life,
+                    explosion_damage,
+                ),
+            )
+            .add_systems(PostUpdate, (destroy_minions, destroy_after_timer));
     }
+}
+
+fn setup_audio(mut commands: Commands, server: Res<AssetServer>) {
+    let handle = server.load(EXPLOSION_AUDIO_ID);
+    commands.insert_resource(AudioExplosion(handle));
 }
 
 #[derive(Bundle)]
@@ -111,12 +122,14 @@ struct ExplosionBundle {
     sensor: Sensor,
     collider: Collider,
     timer_destroyable: TimeDestroyable,
+    audio: AudioBundle,
 }
 
 impl ExplosionBundle {
     pub fn new(
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<ColorMaterial>>,
+        audio_asset: &Handle<AudioSource>,
         mut translation: Vec3,
         team: Team,
     ) -> Self {
@@ -137,6 +150,10 @@ impl ExplosionBundle {
             sensor: Sensor,
             timer_destroyable: TimeDestroyable {
                 timer: Timer::from_seconds(0.2, bevy::time::TimerMode::Once),
+            },
+            audio: AudioBundle {
+                source: audio_asset.clone(),
+                settings: PlaybackSettings::ONCE.with_spatial(true),
             },
         }
     }
@@ -239,6 +256,7 @@ fn check_collisions_minions(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    audio_explosion: Res<AudioExplosion>,
     mut collision_events: EventReader<CollisionEvent>,
     // queries
     mut query_minions: Query<(&Transform, &Team, &mut Minion), With<Minion>>,
@@ -268,6 +286,7 @@ fn check_collisions_minions(
                     commands.spawn(ExplosionBundle::new(
                         &mut meshes,
                         &mut materials,
+                        &audio_explosion.0,
                         transform_a.translation,
                         team_a.clone(),
                     ));
@@ -305,6 +324,7 @@ fn check_collisions_minions(
                 commands.spawn(ExplosionBundle::new(
                     &mut meshes,
                     &mut materials,
+                    &audio_explosion.0,
                     minion_transform.translation,
                     minion_team.clone(),
                 ));

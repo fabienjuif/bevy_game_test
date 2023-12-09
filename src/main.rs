@@ -1,3 +1,4 @@
+mod audio;
 mod castles;
 mod common;
 mod health;
@@ -7,6 +8,7 @@ mod player;
 mod racks;
 mod teams;
 
+use audio::AudioPlugin;
 use bevy::{
     log::{Level, LogPlugin},
     prelude::*,
@@ -24,16 +26,29 @@ use racks::RacksPlugin;
 use teams::TeamsPlugin;
 use xxhash_rust::xxh3::xxh3_64;
 
+const AUDIO_SCALE: f32 = 1. / 100.0;
+
 fn main() {
     let mut app = App::new();
     let seed = b"13U2x";
 
     app.add_plugins((
-        DefaultPlugins.set(LogPlugin {
-            level: Level::TRACE,
-            filter: "wgpu=error,bevy_render=warn,bevy_app=warn,bevy_ecs=warn,naga=warn,gilrs=warn,game::health=info,game::racks=info"
-                .to_string(),
-        }),
+        DefaultPlugins
+            .set(LogPlugin {
+                level: Level::TRACE,
+                filter: [
+                    "wgpu=error",
+                    "bevy_render=warn,bevy_app=warn,bevy_ecs=warn",
+                    "naga=warn",
+                    "gilrs=warn",
+                    "game::health=info,game::racks=info",
+                ]
+                .join(","),
+            })
+            .set(bevy::audio::AudioPlugin {
+                spatial_scale: bevy::audio::SpatialScale::new_2d(AUDIO_SCALE),
+                ..default()
+            }),
         RngPlugin::new().with_rng_seed(xxh3_64(seed)),
         PhysicsPlugin,
         TeamsPlugin,
@@ -42,6 +57,7 @@ fn main() {
         CastlesPlugin,
         HealthPlugin,
         LocalPlayerPlugin,
+        AudioPlugin,
     ))
     // --- camera ---
     .add_plugins((
