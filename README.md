@@ -8,6 +8,7 @@ I aim to explore every aspect of building a game with Bevy without having a spec
 
 - [x] Implement a satisfactory camera (refer to [bevy-cameraman](https://github.com/fabienjuif/bevy_cameraman))
 - [x] Integrate physics/collision mechanics
+- [x] Audio
 - [ ] Develop responsive player control/kinematics
 - [ ] Incorporate particle systems
 - [ ] Explore networking capabilities
