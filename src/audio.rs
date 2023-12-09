@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_cameraman::Cameraman;
 
 const DEBUG: bool = false;
+const MUSIC_AUDIO_ID: &str = "sounds/music.ogg";
 
 pub struct AudioPlugin;
 
@@ -11,9 +12,18 @@ impl Plugin for AudioPlugin {
     }
 }
 
-fn setup(mut commands: Commands, query_camera: Query<Entity, With<Cameraman>>) {
+fn setup(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+    query_camera: Query<Entity, With<Cameraman>>,
+) {
     let gap = 200.;
     let listener = SpatialListener::new(gap);
+
+    commands.spawn(AudioBundle {
+        source: server.load(MUSIC_AUDIO_ID),
+        settings: PlaybackSettings::LOOP.with_spatial(false),
+    });
 
     for entity in &query_camera {
         let mut cmd = commands.entity(entity);
