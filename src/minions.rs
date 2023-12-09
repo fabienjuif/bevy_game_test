@@ -1,4 +1,4 @@
-use crate::{common::*, health::Health, physics::CollisionEvent, teams::Team};
+use crate::{common::*, health::Health, physics::CollisionEvent, states::GameState, teams::Team};
 use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
@@ -40,9 +40,13 @@ impl Plugin for MinionsPlugin {
                     check_collisions_minions,
                     decay_life,
                     explosion_damage,
-                ),
+                )
+                    .run_if(in_state(GameState::Game)),
             )
-            .add_systems(PostUpdate, (destroy_minions, destroy_after_timer));
+            .add_systems(
+                PostUpdate,
+                (destroy_minions, destroy_after_timer).run_if(in_state(GameState::Game)),
+            );
     }
 }
 
