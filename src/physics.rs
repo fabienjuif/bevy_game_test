@@ -3,6 +3,8 @@ use std::{collections::HashMap, hash::Hash, hash::Hasher};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::RapierContext;
 
+use crate::states::GameState;
+
 #[derive(Event)]
 pub enum CollisionEvent {
     /// Event occurring when two colliders start colliding
@@ -77,7 +79,10 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Collisions::new())
             .add_event::<CollisionEvent>()
-            .add_systems(PostUpdate, check_collisions);
+            .add_systems(
+                PostUpdate,
+                check_collisions.run_if(in_state(GameState::Game)),
+            );
     }
 }
 

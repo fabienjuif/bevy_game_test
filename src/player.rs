@@ -2,6 +2,7 @@ use crate::common::*;
 use crate::health::Health;
 use crate::physics::CollisionEvent;
 use crate::racks::{RackBundle, RACK_GOLD_VALUE};
+use crate::states::GameState;
 use crate::teams::{Team, Teams};
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy::window::PrimaryWindow;
@@ -76,24 +77,26 @@ pub struct LocalPlayerPlugin;
 
 impl Plugin for LocalPlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup, setup_ui)).add_systems(
-            Update,
-            (
-                // movements
-                update_axes,
-                keyboard_movements,
-                mouse_movements,
-                // actions
-                update_button_values,
-                mouse_actions,
-                keyboard_actions,
-                // others
-                check_collisions_sword,
-                update_ui,
-                update_sword,
-                update_cooldowns,
-            ),
-        );
+        app.add_systems(OnEnter(GameState::Game), (setup, setup_ui))
+            .add_systems(
+                Update,
+                (
+                    // movements
+                    update_axes,
+                    keyboard_movements,
+                    mouse_movements,
+                    // actions
+                    update_button_values,
+                    mouse_actions,
+                    keyboard_actions,
+                    // others
+                    check_collisions_sword,
+                    update_ui,
+                    update_sword,
+                    update_cooldowns,
+                )
+                    .run_if(in_state(GameState::Game)),
+            );
     }
 }
 
@@ -271,8 +274,12 @@ fn update_ui(
     query_player: Query<&Player, With<LocalPlayer>>,
     mut query_ui: Query<&mut Text, With<GoldUI>>,
 ) {
-    let player = query_player.get_single().expect("no player found");
-    let mut text = query_ui.get_single_mut().expect("no gold ui found");
+    let Ok(player) = query_player.get_single() else {
+        return;
+    };
+    let Ok(mut text) = query_ui.get_single_mut() else {
+        return;
+    };
 
     text.sections[0].value = format!("Gold: {}", player.gold);
 }
@@ -396,7 +403,9 @@ fn mouse_actions(
     mut query_local_player: Query<(&mut Player, Entity, &Children), With<LocalPlayer>>,
     mut query: Query<&mut Sprite, With<Hand>>,
 ) {
-    let (mut player, entity, children) = query_local_player.single_mut();
+    let Ok((mut player, entity, children)) = query_local_player.get_single_mut() else {
+        return;
+    };
 
     for child in children {
         if let Ok(mut sprite) = query.get_mut(*child) {
@@ -420,7 +429,9 @@ fn keyboard_actions(
     mut commands: Commands,
     mut query_local_player: Query<(&mut Player, &Transform, &Team), With<LocalPlayer>>,
 ) {
-    let (mut player, transform, team) = query_local_player.single_mut();
+    let Ok((mut player, transform, team)) = query_local_player.get_single_mut() else {
+        return;
+    };
 
     if keyboard_input.just_pressed(KeyCode::E) && player.gold >= RACK_GOLD_VALUE {
         commands.spawn(RackBundle::new(team.clone(), *transform));

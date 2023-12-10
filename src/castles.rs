@@ -9,6 +9,7 @@ use crate::{
     common::Rewards,
     health::Health,
     racks::Rack,
+    states::GameState,
     teams::{Team, Teams},
 };
 
@@ -65,8 +66,8 @@ pub struct CastlesPlugin;
 
 impl Plugin for CastlesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
-            .add_systems(PostUpdate, destroy);
+        app.add_systems(OnEnter(GameState::Game), setup)
+            .add_systems(PostUpdate, destroy.run_if(in_state(GameState::Game)));
     }
 }
 

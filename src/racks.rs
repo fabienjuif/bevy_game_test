@@ -12,6 +12,7 @@ use crate::{
     common::Rewards,
     health::Health,
     minions::MinionBundle,
+    states::GameState,
     teams::{Team, Teams},
 };
 
@@ -80,9 +81,9 @@ pub struct RacksPlugin;
 
 impl Plugin for RacksPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
-            .add_systems(Update, spawn_minions)
-            .add_systems(PostUpdate, destroy);
+        app.add_systems(OnEnter(GameState::Game), setup)
+            .add_systems(Update, spawn_minions.run_if(in_state(GameState::Game)))
+            .add_systems(PostUpdate, destroy.run_if(in_state(GameState::Game)));
     }
 }
 
