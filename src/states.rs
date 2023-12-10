@@ -4,6 +4,6 @@ use bevy::ecs::schedule::States;
 pub enum GameState {
     #[default]
     Splash,
-    // Pause,
+    Pause,
     Game,
 }

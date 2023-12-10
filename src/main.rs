@@ -3,6 +3,7 @@ mod castles;
 mod common;
 mod health;
 mod minions;
+mod pause;
 mod physics;
 mod player;
 mod racks;
@@ -21,6 +22,7 @@ use bevy_turborand::prelude::*;
 use castles::CastlesPlugin;
 use health::HealthPlugin;
 use minions::MinionsPlugin;
+use pause::PausePlugin;
 use physics::PhysicsPlugin;
 use player::LocalPlayerPlugin;
 use racks::RacksPlugin;
@@ -56,6 +58,7 @@ fn main() {
     ))
     .add_state::<GameState>()
     .add_plugins((
+        PausePlugin,
         TeamsPlugin,
         MinionsPlugin,
         RacksPlugin,
@@ -79,7 +82,7 @@ fn main() {
         gravity: Vec2::new(0.0, 0.0),
         ..default()
     })
-    .insert_resource(GameTimer(Timer::from_seconds(1.0, TimerMode::Once)))
+    .insert_resource(GameTimer(Timer::from_seconds(0.2, TimerMode::Once)))
     .add_systems(Update, countdown)
     .run();
 }
@@ -92,7 +95,7 @@ fn countdown(
     time: Res<Time>,
     mut timer: ResMut<GameTimer>,
 ) {
-    if timer.tick(time.delta()).finished() {
+    if timer.tick(time.delta()).just_finished() {
         game_state.set(GameState::Game);
     }
 }
